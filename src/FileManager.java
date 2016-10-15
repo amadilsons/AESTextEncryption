@@ -1,4 +1,4 @@
-package aes_encryption;
+package aestextencryption;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -103,7 +103,7 @@ public class FileManager {
     3 - save and check zip file to unzip
     4 - save and check zip file password
     */
-    private static String userInHandler(int handler_type){
+    public static String userInHandler(int handler_type){
         Scanner user_in = new Scanner(System.in);
         String user_in_string, error_message;
          
