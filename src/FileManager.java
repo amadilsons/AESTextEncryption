@@ -1,7 +1,5 @@
-
 package aes_encryption;
 
-import aes_encryption.AES_Encryption;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
@@ -32,81 +30,71 @@ public class FileManager {
         
         System.out.println("Do you wish to Encrypt[e] or Decrypt[d] a text file?");
         
-        switch(userInHandler(0)){
+        switch(userInHandler(0)) {
             case "e":   /*
                         ZIP PROCESS
                         */
-                        //Get file name from user input
-                        System.out.println("Input file name: ");
-                        userInHandler(1);
-                        createFileName();
+                //Get file name from user input
+                System.out.println("Input file name: ");
+                userInHandler(1);
+                createFileName();
 
-                        //Create input stream object to read the file
-                        BufferedReader file_reader = null;
-                        try{
-                            file_reader = new BufferedReader(new FileReader(file_names[0]));
-                             //Read text file and build single string. Text is being saved in memory
-                            while((buffer = file_reader.readLine()) != null){
-                                sb.append(buffer);
-                                sb.append(System.lineSeparator());
-                            }
-                            file_reader.close();
-                        }
+                //Create input stream object to read the file
+                BufferedReader file_reader = null;
+                try {
+                    file_reader = new BufferedReader(new FileReader(file_names[0]));
+                    //Read text file and build single string. Text is being saved in memory
+                    while ((buffer = file_reader.readLine()) != null) {
+                        sb.append(buffer);
+                        sb.append(System.lineSeparator());
+                    }
+                    file_reader.close();
+                } catch (Exception ex) {
+                    System.out.println("Init BufferedReader: " + ex.getMessage());
+                }
+                file_content_string = sb.toString();
 
-                        catch (Exception ex){
-                            System.out.println("Init BufferedReader: " + ex.getMessage());
-                        }
-                        file_content_string = sb.toString();
-                        
-                        System.out.println("Set zip password: ");
-                        zip_pass = userInHandler(2);
+                System.out.println("Set zip password: ");
+                zip_pass = userInHandler(2);
 
-                        String ciphertext = null;
-                        try{
-                            ciphertext = aes.encryptFile(file_content_string);
-                        }catch(Exception ex){
-                            System.err.println("aes.encryptFile: " + ex.getMessage());
-                        }
+                String ciphertext = null;
+                try {
+                    ciphertext = aes.encryptFile(file_content_string);
+                } catch (Exception ex) {
+                    System.err.println("aes.encryptFile: " + ex.getMessage());
+                }
 
-                        saveFile(ciphertext);
-                        aes.saveKeys(file_names[2]);
-                        zipFiles(zip_pass);
+                saveFile(ciphertext);
+                aes.saveKeys(file_names[2]);
+                zipFiles(zip_pass);
 
-                        //Eliminate _encrypted.txt e _keys.txt after zipped
-                        File fd;
-                        for(int i = 1; i < 3; i++){
-                            fd = new File(file_names[i]);
-                            fd.delete();
-                        }
+                //Eliminate _encrypted.txt e _keys.txt after zipped
+                File fd;
+                for (int i = 1; i < 3; i++) {
+                    fd = new File(file_names[i]);
+                    fd.delete();
+                }
                 break;
-                
+
             case "d":   /*
                         UNZIP PROCESS
                         */
-                        System.out.println("Insert name of the file to decrypt:");
-                        userInHandler(3);
-                        createFileName();
+                System.out.println("Insert name of the file to decrypt:");
+                userInHandler(3);
+                createFileName();
 
-                        unzipFiles();
+                unzipFiles();
 
-                        String[] info = loadFile(file_names);
-                        for(int a = 0; a < 3; a++)
-                            System.out.println(info[a] + "  paragraph\n");
+                String[] info = loadFile(file_names);
+                for (int a = 0; a < 3; a++)
+                    System.out.println(info[a] + "  paragraph\n");
 
-                        try{
-                        System.out.println(aes.decryptFile(info));
-                        }
-                        catch(Exception ex){
-                            System.out.println("decryptFile " + ex);
-                        }
-                         
+                try {
+                    System.out.println(aes.decryptFile(info));
+                } catch (Exception ex) {
+                    System.out.println("decryptFile " + ex);
+                }
         }
-
-        
-        
-        
-       
-        
     }
     
     /*Handler:
