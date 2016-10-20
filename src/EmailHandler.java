@@ -27,14 +27,5 @@ public class EmailHandler {
         mail_props.put("mail.smtp.host", "smtp.gmail.com");
         mail_props.put("mail.smtp.port", "587");
         mail_props.put("mail.smtp.starttls.enable", "true");
-
-        Session session = Session.getInstance(mail_props,
-                new javax.mail.Authenticator() {
-                    //Creat class extending javax.mail.Authenticator() to override method getPasswordAuthentication()
-                    @Override
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
-                    }
-                });
     }
 }
