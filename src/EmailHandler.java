@@ -21,11 +21,16 @@ public class EmailHandler {
 
     public EmailHandler(){
 
+        AuthenticatorOverride auth = new AuthenticatorOverride();
         //Set javax.mail properties
         Properties mail_props = new Properties();
         mail_props.put("mail.smtp.auth", "true");
         mail_props.put("mail.smtp.host", "smtp.gmail.com");
         mail_props.put("mail.smtp.port", "587");
         mail_props.put("mail.smtp.starttls.enable", "true");
+
+        Session session = Session.getInstance(mail_props, new AuthenticatorOverride.PasswordAuthentication())
     }
+
+
 }
