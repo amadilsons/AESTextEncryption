@@ -11,6 +11,7 @@ import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import java.io.*;
 import java.util.Properties;
+import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -19,9 +20,10 @@ import javax.mail.Transport;
 import javax.mail.internet.*;
 
 public class EmailHandler {
-    private static String from = "textencryptor@gmail.com";
-    private static String pass = "128aesencryption";
+    private static final String from = "textencryptor@gmail.com";
+    private static final String pass = "128aesencryption";
     private static Session session;
+    private static Message message;
 
 
     public EmailHandler(){
@@ -39,10 +41,22 @@ public class EmailHandler {
         auth.getPasswordAuthentication(from, pass); //authenticate into smtp.gmail.com
     }
 
-    public void createMessage(String to, String[] file_names, ZipFile attachment ){
-        Message message = new MimeMessage(session);
+    public void sendMessage(){
+        System.out.println("Sending message...");
+
+        try {
+            Transport.send(message);
+            System.out.println("E-mail sent!");
+        } catch (MessagingException mex) {
+            mex.printStackTrace();
+        }
+    }
+    public void createMessage(String to, String[] file_names){
+
+        message = new MimeMessage(session);
         MimeMultipart multipart = new MimeMultipart();
         MimeBodyPart body_part = new MimeBodyPart();
+        System.out.println("Creating message...");
         try {
             message.setFrom(new InternetAddress(from));//Add from field
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));//Add TO field
@@ -52,16 +66,17 @@ public class EmailHandler {
             body_part.setText(getMessageBodyText());//Set preexisting message body text
             multipart.addBodyPart(body_part);
             body_part = new MimeBodyPart();
+            DataHandler attach_handler = new DataHandler(new FileDataSource(file_names[3]));
+            body_part.setDataHandler(attach_handler);
+            body_part.setFileName(file_names[3]);
+            multipart.addBodyPart(body_part);
 
-            /**
-             * Discover how to add ZipFile data source to DataHandler for MimeBodyPart
-             */
-
-            FileDataSource fdsrc = new FileDataSource();
-
-        }catch(Exception ex){
-            System.out.println(ex.getMessage());
+            //Finalize message
+            message.setContent(multipart);
+        }catch(MessagingException mex){
+            System.out.println(mex.getMessage());
         }
+        System.out.println("Done!");
     }
 
     private String getMessageBodyText(){
