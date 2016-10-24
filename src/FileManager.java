@@ -263,7 +263,7 @@ public class FileManager {
         BufferedReader br = null;
         
         for(int i = 1; i < 3; i++){ //each cycle reads one file
-            
+
             try{
                 br = new BufferedReader(new FileReader(file_names[i]));
             }catch(Exception ex){

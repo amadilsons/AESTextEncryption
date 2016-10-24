@@ -1,12 +1,10 @@
 package aestextencryption;
 /**
  * Created by João Amado on 17/10/2016.
- * Implement addTextMessage, addFile
- * Constructor builds email object
- * Mails sent though gmail smtp server
+ * Specifies EmailHandler object wich handles all
+ * email related functions for this program.
  */
 
-import aestextencryption.FileManager;
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.mail.Message;
@@ -17,8 +15,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.util.Properties;
 
 public class EmailHandler {
