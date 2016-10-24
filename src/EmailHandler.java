@@ -5,6 +5,7 @@ package aestextencryption;
  * email related functions for this program.
  */
 
+import aestextencryption.FileManager;
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.mail.Message;

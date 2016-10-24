@@ -218,9 +218,11 @@ public class FileManager {
                 zip_file.setPassword(userInHandler(4));
             }
             zip_file.extractAll("C:\\Users\\João Amado\\Documents\\NetBeansProjects\\AES_encryption");
+            System.out.println("Unzip!");
         }catch(ZipException ze){
             System.err.println("unzipFiles: " + ze.getMessage());
         }
+
     }
     
     public static void zipFiles(String pass){
@@ -267,7 +269,7 @@ public class FileManager {
             try{
                 br = new BufferedReader(new FileReader(file_names[i]));
             }catch(Exception ex){
-                System.err.println("loadFile " + ex.getMessage());
+                ex.printStackTrace();
             }
             if(i == 1){
                  mskiv[0] = br.readLine();
