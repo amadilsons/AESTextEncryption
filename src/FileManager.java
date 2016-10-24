@@ -73,7 +73,7 @@ public class FileManager {
 
                 String[] info = loadFile();
                 for (int a = 0; a < 3; a++)
-                    System.out.println(info[a] + "  paragraph\n");
+                    System.out.println(info[a]);
 
                 try {
                     System.out.println(aes.decryptFile(info));
@@ -258,8 +258,11 @@ public class FileManager {
         for(i = 1; i < 3; i++) { //each cycle reads one file
             if (i == 1)
                 mskiv[0] = readTextFile(file_names[1]);
-            if (i == 2)
+            if (i == 2) {
                 sb = new StringBuilder(readTextFile(file_names[2]));
+                mskiv[1] = sb.substring(0, sb.lastIndexOf(System.lineSeparator())-1);
+                mskiv[2] = sb.substring(sb.lastIndexOf(System.lineSeparator()), sb.length());
+            }
         }
         deleteFiles(2);
         return mskiv;

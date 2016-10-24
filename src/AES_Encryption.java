@@ -5,6 +5,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.awt.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -47,6 +48,7 @@ public class AES_Encryption {
         IvParameterSpec ivparam = new IvParameterSpec(ivbyte);
         
         byte[] skeyb = Base64.getDecoder().decode(info[2]);
+        System.out.println("SK");
         skey = new SecretKeySpec(skeyb, "AES");
         
         return decrypt(skey, ivparam, info[0]);
@@ -54,7 +56,7 @@ public class AES_Encryption {
     
     public void saveKeys(String file_name){ 
         //Encode IV into Base64 string
-        String init_vector = Base64.getEncoder().encodeToString(iv.getIV());
+        String init_vector = Base64.getEncoder().withoutPadding().encodeToString(iv.getIV());
         //getEncoded() encodes skey into byte[] wich is then encoded into a Base64 string
         String secret_key = Base64.getEncoder().withoutPadding().encodeToString(skey.getEncoded());
         
