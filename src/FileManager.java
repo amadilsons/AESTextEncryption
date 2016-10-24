@@ -1,6 +1,7 @@
 package aestextencryption;
 
 import aestextencryption.AES_Encryption;
+import aestextencryption.EmailHandler;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
@@ -38,21 +39,7 @@ public class FileManager {
                 System.out.println("Input file name: ");
                 userInHandler(1);
                 createFileName();
-
-                //Create input stream object to read the file
-                BufferedReader file_reader = null;
-                try {
-                    file_reader = new BufferedReader(new FileReader(file_names[0]));
-                    //Read text file and build single string. Text is being saved in memory
-                    while ((buffer = file_reader.readLine()) != null) {
-                        sb.append(buffer);
-                        sb.append(System.lineSeparator());
-                    }
-                    file_reader.close();
-                } catch (Exception ex) {
-                    System.out.println("Init BufferedReader: " + ex.getMessage());
-                }
-                file_content_string = sb.toString();
+                file_content_string = readTextFile(file_names[0]);
 
                 System.out.println("Set zip password: ");
                 zip_pass = userInHandler(2);
@@ -68,6 +55,9 @@ public class FileManager {
                 aes.saveKeys(file_names[2]);
                 zipFiles(zip_pass);
 
+                EmailHandler eh = new EmailHandler();
+                eh.createMessage("joao.amado.95@gmail.com", file_names);
+                eh.sendMessage();
                 //Eliminate _encrypted.txt e _keys.txt after zipped
                 File fd;
                 for (int i = 1; i < 3; i++) {
@@ -200,6 +190,21 @@ public class FileManager {
         
         for(int i = 0; i < 4; i++)
             System.out.println(file_names[i]);
+    }
+
+    public static String readTextFile(String name){
+        StringBuilder sb = new StringBuilder();
+        String buffer = new String();
+        try{
+            BufferedReader reader = new BufferedReader(new FileReader(name));
+            while((buffer = reader.readLine()) != null) {
+                sb.append(buffer);
+                sb.append(System.lineSeparator());
+            }
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }
+        return sb.toString();
     }
     
     public static void unzipFiles(){

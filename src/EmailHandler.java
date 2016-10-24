@@ -6,21 +6,23 @@ package aestextencryption;
  * Mails sent though gmail smtp server
  */
 
-import aestextencryption.AuthenticatorOverride;
-import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.exception.ZipException;
-import java.io.*;
-import java.util.Properties;
+import aestextencryption.FileManager;
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
-import javax.mail.internet.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.Properties;
 
 public class EmailHandler {
-    private static final String from = "textencryptor@gmail.com";
+    private static final String from = "textencryptor128@gmail.com";
     private static final String pass = "128aesencryption";
     private static Session session;
     private static Message message;
@@ -28,29 +30,32 @@ public class EmailHandler {
 
     public EmailHandler(){
 
-        AuthenticatorOverride auth = new AuthenticatorOverride();
-
-        //Set javax.mail properties
+        //Set javax.mail properties and init session
         Properties mail_props = new Properties();
-        mail_props.put("mail.smtp.auth", "true");
+
+        mail_props.put("mail.smtp.ssl.trust", "smtp.gmail.com"); //ignore certificate (enable send form uncertified source)
+        mail_props.put("mail.smtp.starttls.enable", true); //enable TLS connection
         mail_props.put("mail.smtp.host", "smtp.gmail.com");
         mail_props.put("mail.smtp.port", "587");
-        mail_props.put("mail.smtp.starttls.enable", "true");
+        mail_props.put("mail.smtp.auth", true);
 
-        session = Session.getInstance(mail_props, auth);
-        auth.getPasswordAuthentication(from, pass); //authenticate into smtp.gmail.com
+        session = Session.getInstance(mail_props);
     }
 
     public void sendMessage(){
         System.out.println("Sending message...");
 
         try {
-            Transport.send(message);
-            System.out.println("E-mail sent!");
+            Transport transport = session.getTransport("smtp");
+            transport.connect("smtp.gmail.com", from, pass);
+            transport.sendMessage(message, message.getAllRecipients());
+            transport.close();
+            System.out.println("Message sent!");
         } catch (MessagingException mex) {
             mex.printStackTrace();
         }
     }
+
     public void createMessage(String to, String[] file_names){
 
         message = new MimeMessage(session);
@@ -63,7 +68,7 @@ public class EmailHandler {
             message.setSubject("Encrypted " + file_names[0]);//Set the subject of the e-mail
 
             //Create text body part and attachment body part
-            body_part.setText(getMessageBodyText());//Set preexisting message body text
+            body_part.setText(FileManager.readTextFile("messageText.txt"));//Set preexisting message body text
             multipart.addBodyPart(body_part);
             body_part = new MimeBodyPart();
             DataHandler attach_handler = new DataHandler(new FileDataSource(file_names[3]));
@@ -78,19 +83,4 @@ public class EmailHandler {
         }
         System.out.println("Done!");
     }
-
-    private String getMessageBodyText(){
-        StringBuilder sb = new StringBuilder();
-
-        try{
-            BufferedReader reader = new BufferedReader(new FileReader("src/messageText.txt"));
-            while((sb.append(reader.readLine())) != null) {
-                sb.append(System.lineSeparator());
-            }
-        }catch(Exception ex){
-            System.out.println(ex.getMessage());
-        }
-        return sb.toString();
-    }
-
 }
