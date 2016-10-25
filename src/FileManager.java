@@ -55,9 +55,9 @@ public class FileManager {
                 aes.saveKeys(file_names[2]);
                 zipFiles(zip_pass);
 
-                EmailHandler eh = new EmailHandler();
+                /*EmailHandler eh = new EmailHandler();
                 eh.createMessage("joao.amado.95@gmail.com", file_names);
-                eh.sendMessage();
+                eh.sendMessage();*/
                 //Eliminate _encrypted.txt e _keys.txt after zipped
                 deleteFiles(2);
                 break;
@@ -73,7 +73,7 @@ public class FileManager {
 
                 String[] info = loadFile();
                 for (int a = 0; a < 3; a++)
-                    System.out.println(info[a]);
+                    System.out.println(a + " " + info[a]);
 
                 try {
                     System.out.println(aes.decryptFile(info));
@@ -256,12 +256,17 @@ public class FileManager {
         int i;
 
         for(i = 1; i < 3; i++) { //each cycle reads one file
-            if (i == 1)
-                mskiv[0] = readTextFile(file_names[1]);
+            if (i == 1) {
+                sb = new StringBuilder(readTextFile(file_names[1]));
+                mskiv[0] = sb.substring(0, sb.lastIndexOf(System.lineSeparator()));
+                System.out.println("mskiv 1: " + mskiv[0]);
+            }
             if (i == 2) {
                 sb = new StringBuilder(readTextFile(file_names[2]));
-                mskiv[1] = sb.substring(0, sb.lastIndexOf(System.lineSeparator())-1);
-                mskiv[2] = sb.substring(sb.lastIndexOf(System.lineSeparator()), sb.length());
+                mskiv[1] = sb.substring(0, sb.indexOf(System.lineSeparator()));
+                System.out.println("mskiv 1: "+mskiv[1]);
+                mskiv[2] = sb.substring(sb.indexOf(System.lineSeparator())+2, sb.length()-1);
+                System.out.println("mskiv 2: " + mskiv[2]);
             }
         }
         deleteFiles(2);
