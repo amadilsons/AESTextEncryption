@@ -1,6 +1,10 @@
 package aestextencryption;
 
 import aestextencryption.AES_Encryption;
+<<<<<<< HEAD
+=======
+import aestextencryption.EmailHandler;
+>>>>>>> optmz
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
@@ -13,7 +17,7 @@ import java.util.Scanner;
  *
  * @author João Amado
  */
-public class FileManager {
+public class FileManager{
     static public String[] file_names = {null, null, null, null};
     /*0 - name.txt
       1 - name_encrypted.txt
@@ -38,21 +42,7 @@ public class FileManager {
                 System.out.println("Input file name: ");
                 userInHandler(1);
                 createFileName();
-
-                //Create input stream object to read the file
-                BufferedReader file_reader = null;
-                try {
-                    file_reader = new BufferedReader(new FileReader(file_names[0]));
-                    //Read text file and build single string. Text is being saved in memory
-                    while ((buffer = file_reader.readLine()) != null) {
-                        sb.append(buffer);
-                        sb.append(System.lineSeparator());
-                    }
-                    file_reader.close();
-                } catch (Exception ex) {
-                    System.out.println("Init BufferedReader: " + ex.getMessage());
-                }
-                file_content_string = sb.toString();
+                file_content_string = readTextFile(file_names[0]);
 
                 System.out.println("Set zip password: ");
                 zip_pass = userInHandler(2);
@@ -68,12 +58,11 @@ public class FileManager {
                 aes.saveKeys(file_names[2]);
                 zipFiles(zip_pass);
 
+                /*EmailHandler eh = new EmailHandler();
+                eh.createMessage("joao.amado.95@gmail.com", file_names);
+                eh.sendMessage();*/
                 //Eliminate _encrypted.txt e _keys.txt after zipped
-                File fd;
-                for (int i = 1; i < 3; i++) {
-                    fd = new File(file_names[i]);
-                    fd.delete();
-                }
+                deleteFiles(2);
                 break;
 
             case "d":   /*
@@ -85,14 +74,14 @@ public class FileManager {
 
                 unzipFiles();
 
-                String[] info = loadFile(file_names);
+                String[] info = loadFile();
                 for (int a = 0; a < 3; a++)
-                    System.out.println(info[a] + "  paragraph\n");
+                    System.out.println(a + " " + info[a]);
 
                 try {
                     System.out.println(aes.decryptFile(info));
                 } catch (Exception ex) {
-                    System.out.println("decryptFile " + ex);
+                    System.out.println("decryptFile " + ex.getMessage());
                 }
         }
     }
@@ -140,15 +129,19 @@ public class FileManager {
                         }
                         break;
 
-                case 4: try{ //password input 
+                case 4: boolean ok = true;
+                        try{
                             ZipFile test_zip = new ZipFile(file_names[3]);
-                            if(test_zip.isEncrypted()){
+                            if(test_zip.isEncrypted())
                                 test_zip.setPassword(user_in_string);
-                                return user_in_string;
-                            }
-                        }catch(ZipException ze){
+                            test_zip.extractAll("../aes_text_encryption");
+                        }catch(ZipException ze) {
+                            deleteFiles(1); //extractAll creates name_encrypted.txt empty file before checking for validity of pass
                             error_message = "Wrong password! Try again: ";
+                            ok = false;
                         }
+                        if(ok)
+                            return user_in_string;
                         break;
 
                 default: System.out.println("userInHandler default error in switch!");
@@ -201,26 +194,33 @@ public class FileManager {
         for(int i = 0; i < 4; i++)
             System.out.println(file_names[i]);
     }
-    
-    public static void unzipFiles(){
-        File[] files = new File[2];
-        Scanner in = new Scanner(System.in);
-        
+
+    public static String readTextFile(String name){
+        StringBuilder sb = new StringBuilder();
+        String buffer = new String();
         try{
-            ZipFile zip_file = new ZipFile(file_names[3]);
-            if (zip_file.isEncrypted()) {
-                System.out.println("Enter password:");
-                zip_file.setPassword(userInHandler(4));
+            BufferedReader reader = new BufferedReader(new FileReader(name));
+            while((buffer = reader.readLine()) != null) {
+                sb.append(buffer);
+                sb.append(System.lineSeparator());
             }
-            zip_file.extractAll("C:\\Users\\João Amado\\Documents\\NetBeansProjects\\AES_encryption");
-        }catch(ZipException ze){
-            System.err.println("unzipFiles: " + ze.getMessage());
+        }catch(Exception ex){
+            ex.printStackTrace();
         }
+        return sb.toString();
+    }
+
+    /**
+     * Implement create folder to extract files to
+     */
+    public static void unzipFiles(){
+        System.out.println("Enter password: ");
+        userInHandler(4);
     }
     
     public static void zipFiles(String pass){
         ZipParameters zip_param = new ZipParameters();
-        ArrayList<File> files_to_add = new ArrayList();
+        ArrayList<File> files_to_add = new ArrayList<File>();
         Scanner in = new Scanner(System.in);
         
         files_to_add.add(new File(file_names[1]));
@@ -253,28 +253,35 @@ public class FileManager {
         return out;
     }
     
-    public static String[] loadFile(String[] file_names) throws IOException{
+    public static String[] loadFile() throws IOException{
         String[] mskiv = new String[3];
-        BufferedReader br = null;
-        
-        for(int i = 1; i < 3; i++){ //each cycle reads one file
-            
-            try{
-                br = new BufferedReader(new FileReader(file_names[i]));
-            }catch(Exception ex){
-                System.err.println("loadFile " + ex.getMessage());
+        StringBuilder sb;
+        int i;
+
+        for(i = 1; i < 3; i++) { //each cycle reads one file
+            if (i == 1) {
+                sb = new StringBuilder(readTextFile(file_names[1]));
+                mskiv[0] = sb.substring(0, sb.lastIndexOf(System.lineSeparator()));
+                System.out.println("mskiv 0: " + mskiv[0]);
             }
-            if(i == 1){
-                 mskiv[0] = br.readLine();
+            if (i == 2) {
+                sb = new StringBuilder(readTextFile(file_names[2]));
+                mskiv[1] = sb.substring(0, sb.indexOf(System.lineSeparator()));
+                System.out.println("mskiv 1: "+mskiv[1]);
+                mskiv[2] = sb.substring(sb.indexOf(System.lineSeparator())+1, sb.length()-1);
+                System.out.println("mskiv 2: " + mskiv[2]);
             }
-            if(i == 2){
-                mskiv[1] = br.readLine(); //reads IV
-                mskiv[2] = br.readLine(); //reads SKey
-            }
-            br.close();
         }
-        
+
+        deleteFiles(2);
         return mskiv;
     }
-    
+
+    public static void deleteFiles(int num_of_files){
+        File fd;
+        for (int i = 1; i < (num_of_files + 1); i++) {
+            fd = new File(file_names[i]);
+            fd.delete();
+        }
+    }
 }

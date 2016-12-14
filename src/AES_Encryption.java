@@ -43,10 +43,13 @@ public class AES_Encryption {
     }
     
     public String decryptFile(String[] info) throws Exception{
+
         byte[] ivbyte = Base64.getDecoder().decode(info[1]);
+
         IvParameterSpec ivparam = new IvParameterSpec(ivbyte);
-        
+        System.out.println("SK");
         byte[] skeyb = Base64.getDecoder().decode(info[2]);
+        System.out.println("SK2");
         skey = new SecretKeySpec(skeyb, "AES");
         
         return decrypt(skey, ivparam, info[0]);
@@ -54,10 +57,11 @@ public class AES_Encryption {
     
     public void saveKeys(String file_name){ 
         //Encode IV into Base64 string
-        String init_vector = Base64.getEncoder().encodeToString(iv.getIV());
+        String init_vector = new String(Base64.getEncoder().withoutPadding().encode(iv.getIV()));
+        System.out.println(init_vector);
         //getEncoded() encodes skey into byte[] wich is then encoded into a Base64 string
-        String secret_key = Base64.getEncoder().withoutPadding().encodeToString(skey.getEncoded());
-        
+        String secret_key = new String(Base64.getEncoder().withoutPadding().encode(skey.getEncoded()));
+        System.out.println(secret_key);
         File out = new File(file_name); //create new File variable with specified name
         
         try{
@@ -96,8 +100,8 @@ public class AES_Encryption {
         
         //Encryption of plaintext and enconding to Base64 String so it can be printed out
         byte[] ctbytes = cipher.doFinal(ptbytes);
-        Base64.Encoder encoder64 = Base64.getEncoder();
-        String ciphertext = new String(encoder64.encode(ctbytes));
+        //Base64.Encoder encoder64 = Base64.getEncoder();
+        String ciphertext = new String(Base64.getEncoder().encode(ctbytes));
         
         return ciphertext;
     }
@@ -106,7 +110,6 @@ public class AES_Encryption {
         //Decoding ciphertext from Base64 to bytes[]
         Base64.Decoder decoder64 = Base64.getDecoder();
         byte[] ctbytes = decoder64.decode(ciphertext);
-       
         //Init cipher for AES/CBC decryption 
         cipher.init(Cipher.DECRYPT_MODE, skey, iv);
         
