@@ -1,10 +1,7 @@
 package aestextencryption;
 
 import aestextencryption.AES_Encryption;
-<<<<<<< HEAD
-=======
 import aestextencryption.EmailHandler;
->>>>>>> optmz
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
