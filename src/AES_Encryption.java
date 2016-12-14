@@ -5,7 +5,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.awt.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -101,8 +100,8 @@ public class AES_Encryption {
         
         //Encryption of plaintext and enconding to Base64 String so it can be printed out
         byte[] ctbytes = cipher.doFinal(ptbytes);
-        Base64.Encoder encoder64 = Base64.getEncoder();
-        String ciphertext = new String(encoder64.encode(ctbytes));
+        //Base64.Encoder encoder64 = Base64.getEncoder();
+        String ciphertext = new String(Base64.getEncoder().encode(ctbytes));
         
         return ciphertext;
     }

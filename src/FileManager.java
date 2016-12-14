@@ -14,7 +14,7 @@ import java.util.Scanner;
  *
  * @author João Amado
  */
-public class FileManager {
+public class FileManager{
     static public String[] file_names = {null, null, null, null};
     /*0 - name.txt
       1 - name_encrypted.txt
@@ -78,7 +78,7 @@ public class FileManager {
                 try {
                     System.out.println(aes.decryptFile(info));
                 } catch (Exception ex) {
-                    System.out.println("decryptFile " + ex);
+                    System.out.println("decryptFile " + ex.getMessage());
                 }
         }
     }
@@ -131,7 +131,7 @@ public class FileManager {
                             ZipFile test_zip = new ZipFile(file_names[3]);
                             if(test_zip.isEncrypted())
                                 test_zip.setPassword(user_in_string);
-                            test_zip.extractAll("C:\\Users\\João Amado\\Documents\\Coding Projects\\AESTextEncryption");
+                            test_zip.extractAll("../aes_text_encryption");
                         }catch(ZipException ze) {
                             deleteFiles(1); //extractAll creates name_encrypted.txt empty file before checking for validity of pass
                             error_message = "Wrong password! Try again: ";
@@ -217,7 +217,7 @@ public class FileManager {
     
     public static void zipFiles(String pass){
         ZipParameters zip_param = new ZipParameters();
-        ArrayList<File> files_to_add = new ArrayList();
+        ArrayList<File> files_to_add = new ArrayList<File>();
         Scanner in = new Scanner(System.in);
         
         files_to_add.add(new File(file_names[1]));
@@ -259,16 +259,17 @@ public class FileManager {
             if (i == 1) {
                 sb = new StringBuilder(readTextFile(file_names[1]));
                 mskiv[0] = sb.substring(0, sb.lastIndexOf(System.lineSeparator()));
-                System.out.println("mskiv 1: " + mskiv[0]);
+                System.out.println("mskiv 0: " + mskiv[0]);
             }
             if (i == 2) {
                 sb = new StringBuilder(readTextFile(file_names[2]));
                 mskiv[1] = sb.substring(0, sb.indexOf(System.lineSeparator()));
                 System.out.println("mskiv 1: "+mskiv[1]);
-                mskiv[2] = sb.substring(sb.indexOf(System.lineSeparator())+2, sb.length()-1);
+                mskiv[2] = sb.substring(sb.indexOf(System.lineSeparator())+1, sb.length()-1);
                 System.out.println("mskiv 2: " + mskiv[2]);
             }
         }
+
         deleteFiles(2);
         return mskiv;
     }
