@@ -1,4 +1,4 @@
-package aestextencryption;
+package aestextencryption.encryption;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -13,12 +13,12 @@ import java.util.Base64;
  *
  * @author João Amado
  */
-public class AES_Encryption {
+public class AesEncryptor {
     private static SecretKey skey;
     private static Cipher cipher;
     private static IvParameterSpec iv;
     
-    public AES_Encryption(){
+    public AesEncryptor(){
   
         String ciphertext = null;
         String init_vector = "RndInitVecforCBC";
