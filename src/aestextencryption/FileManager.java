@@ -1,7 +1,5 @@
 package aestextencryption;
 
-import aestextencryption.AES_Encryption;
-import aestextencryption.EmailHandler;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
@@ -9,13 +7,14 @@ import net.lingala.zip4j.util.Zip4jConstants;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
+import aestextencryption.encryption.AesEncryptor;
 
 /**
  *
  * @author João Amado
  */
 public class FileManager{
-    static public String[] file_names = {null, null, null, null};
+    static public String[] file_names = {null, "test", null, null};
     /*0 - name.txt
       1 - name_encrypted.txt
       2 - name_keys.txt
@@ -24,10 +23,10 @@ public class FileManager{
     
     public static void main(String[] args) throws IOException{
         
-        AES_Encryption aes = new AES_Encryption();
-        Scanner console_in = new Scanner(System.in);
-        StringBuilder sb = new StringBuilder();
-        String file_content_string, buffer = null, zip_pass = null;
+        AesEncryptor aes = new AesEncryptor();
+
+
+        String file_content_string, zip_pass = null;
         
         System.out.println("Do you wish to Encrypt[e] or Decrypt[d] a text file?");
         
@@ -202,7 +201,7 @@ public class FileManager{
                 sb.append(System.lineSeparator());
             }
         }catch(Exception ex){
-            ex.printStackTrace();
+            System.out.println(ex.getMessage());
         }
         return sb.toString();
     }
