@@ -1,0 +1,7 @@
+Criar objeto de transporte de dados. Inclui header com o tipo de dados a ler.
+
+Criar possibilidade de servidor aceitar múltiplas ligaçãoes simultaneamente
+
+Criar interface Network com métodos para override comuns ao cliente e servidor: send(), receive(), initIOStreams()...
+
+Criar log de sessões para cada utilizador; Prevenir replay attacks; Ex. Amado *hashSession1* *hashSession2* ...

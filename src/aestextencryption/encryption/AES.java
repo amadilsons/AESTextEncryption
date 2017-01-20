@@ -2,6 +2,7 @@ package aestextencryption.encryption;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -13,17 +14,17 @@ import java.util.Base64;
  *
  * @author João Amado
  */
-public class AesEncryptor {
+public class AES {
     private static SecretKey skey;
     private static Cipher cipher;
     private static IvParameterSpec iv;
     
-    public AesEncryptor(){
+    public AES(){
   
         String ciphertext = null;
         String init_vector = "RndInitVecforCBC";
         
-        //Generate Key
+        //Generate 128 bit key
         skey = generateKey();
         
         //Create IV necessary for CBC
@@ -32,10 +33,12 @@ public class AesEncryptor {
         //Set cipher to AES/CBC mode with padding 
         try{
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        } catch(NoSuchAlgorithmException nsaex){
+            nsaex.printStackTrace();
+        } catch(NoSuchPaddingException nspex){
+            nspex.printStackTrace();
         }
-        catch(Exception ex){
-            System.err.println("AES Encryption initialization " + ex.getMessage());
-        }
+
     }
  
     public String encryptFile(String plaintext) throws Exception{
