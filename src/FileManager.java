@@ -7,7 +7,11 @@ import net.lingala.zip4j.util.Zip4jConstants;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
+<<<<<<< HEAD:src/aestextencryption/FileManager.java
 import aestextencryption.encryption.AesEncryptor;
+=======
+import aestextencryption.encryption.AES;
+>>>>>>> network:src/aestextencryption/FileManager.java
 
 /**
  *
@@ -21,9 +25,13 @@ public class FileManager{
       3 - name.zip
     */
     
-    public static void main(String[] args) throws IOException{
+    public static void  menu() throws IOException{
         
+<<<<<<< HEAD:src/aestextencryption/FileManager.java
         AesEncryptor aes = new AesEncryptor();
+=======
+        AES aes = new AES();
+>>>>>>> network:src/aestextencryption/FileManager.java
 
 
         String file_content_string, zip_pass = null;
@@ -107,12 +115,14 @@ public class FileManager{
                 case 1: File test = new File(user_in_string); //file to encrypt name input
                         if(!test.exists())
                             error_message = "File does not exist! Try again: ";
-                        else
+                        else {
                             file_names[0] = user_in_string;
+                            return user_in_string;
+                        }
                         break;
 
                 case 2: return user_in_string; //user input new zip file password
-                        
+
 
                 case 3: try{ //file to unzip input 
                             ZipFile test_zip = new ZipFile(user_in_string);
@@ -193,7 +203,7 @@ public class FileManager{
 
     public static String readTextFile(String name){
         StringBuilder sb = new StringBuilder();
-        String buffer = new String();
+        String buffer;
         try{
             BufferedReader reader = new BufferedReader(new FileReader(name));
             while((buffer = reader.readLine()) != null) {
@@ -217,7 +227,6 @@ public class FileManager{
     public static void zipFiles(String pass){
         ZipParameters zip_param = new ZipParameters();
         ArrayList<File> files_to_add = new ArrayList<File>();
-        Scanner in = new Scanner(System.in);
         
         files_to_add.add(new File(file_names[1]));
         files_to_add.add(new File(file_names[2]));
