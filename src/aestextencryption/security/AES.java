@@ -1,4 +1,4 @@
-package aestextencryption.encryption;
+package aestextencryption.security;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;

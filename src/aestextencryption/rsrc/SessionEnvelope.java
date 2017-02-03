@@ -7,11 +7,17 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Random;
 
+/**
+ * STAGE_0: Authentication
+ * STAGE_1: Key Exchange
+ * STAGE_2: File Transfer
+ * STAGE_3: End session
+ */
 public class SessionEnvelope implements Serializable{
-    public int SessionID;
-    public int SessionStage;
-    public String Authentication;
-    public DataTransporter Payload;
+    private int SessionID;
+    private int SessionStage;
+    private String Authentication;
+    private DataTransporter Payload;
 
     public void createID(){
         Random rand = new Random();
@@ -22,19 +28,33 @@ public class SessionEnvelope implements Serializable{
         this.SessionID++;
     }
 
+    public int getSID() {
+        return this.SessionID;
+    }
+
+    public int getStage(){
+        return this.SessionStage;
+    }
+
+    public String getAuth(){
+        return this.Authentication;
+    }
+
+    public DataTransporter getDT(){
+        return this.Payload;
+    }
+
     public void setSessionEnvelope(int stage, DataTransporter dt, String auth){
         this.SessionStage = stage;
-        switch(stage){
-            case 0: /*Authentication*/
-                this.Payload = null;
-                this.Authentication = auth;
-                break;
-            case 1:
-                break;
-            case 2:
-                break;
-            default:System.out.println("Protocol stage number not defined!");
-                break;
-        }
+        this.Payload = dt;
+        this.Authentication = auth;
     }
+
+    public void setSessionEnvelope(int sid, int stage, DataTransporter dt, String auth){
+        this.SessionID = sid;
+        this.SessionStage = stage;
+        this.Payload = dt;
+        this.Authentication = auth;
+    }
+
 }

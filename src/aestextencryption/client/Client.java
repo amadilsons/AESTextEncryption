@@ -1,35 +1,34 @@
 package aestextencryption.client;
 
-import aestextencryption.FileManager;
-import aestextencryption.rsrc.DataTransporter;
+import aestextencryption.rsrc.Networking;
 import aestextencryption.rsrc.SessionEnvelope;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
+import aestextencryption.security.Authenticator;
+import aestextencryption.security.Authenticator.Response;
+import aestextencryption.security.DH;
 
-import javax.xml.crypto.Data;
+import javax.crypto.spec.DHParameterSpec;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Scanner;
 
-public class Client{
-    private static Socket clientSkt;
-    private static ObjectOutputStream outSkt;
-    private static ObjectInputStream inSkt;
-    private static String userName;
-    private static String userPass;
+public class Client implements Networking{
+    public static Socket sessionSkt = null;
+    private static ObjectOutputStream outSkt = null;
+    private static ObjectInputStream inSkt = null;
+    public static String userName;
+    public static String userPass;
     public static final int MAX_FILE_SIZE = 8; //File size in Kbytes
 
     public static void main(String[] args){
+        String paramAux;
+        Response rsp;
         Scanner in = new Scanner(System.in);
-        String userInput = null;
-        String param = null;
-        boolean error = false;
-        byte[] fbytes = null;
 
         System.out.println("Welcome to the Encrypted Data Storage App!\nUser Name: ");
         userName = in.nextLine();
@@ -39,44 +38,86 @@ public class Client{
         /*Establish TCP connection with server*/
         InetAddress serverAddr = getInetAddr(args[0]);
         try {
-            clientSkt = new Socket(serverAddr, Integer.parseInt(args[1]));
-            initIOStreams();
+            sessionSkt = new Socket(serverAddr, Integer.parseInt(args[1]));
         } catch(IOException ioex) {
             ioex.printStackTrace();
         }
 
-        /*Begin authentication with server; protocol stage_0*/
-        SessionEnvelope se = new SessionEnvelope();
-        se.createID();
-        DataTransporter dt = new DataTransporter(userName, null);
-        param = userName + userPass + Integer.toString(se.SessionID);
-        se.setSessionEnvelope(0, dt, Base64.getEncoder().encodeToString(shaHash(param)));
-        send(se);
-        se = receive();
-
-
-        do {
-            userInput = in.nextLine();
-            File test = new File(userInput); //file to encrypt name input
-            if (!test.exists()) {
-                System.out.println("File does not exist! Try again: ");
-                error = true;
+        /*Begin authentication protocol*/
+        ClientAuthenticator ca = new ClientAuthenticator(sessionSkt, userName, userPass);
+        if((rsp = ca.startAuthentication()) != Authenticator.Response.OK){
+            switch(rsp){
+                case AUTHCPT:
+                    System.out.println("Server failed to authenticate! AUTHCPT");
+                    break;
+                case STGMIS:
+                    System.out.println("Session stage mismatch! (stage neither 0 nor 3) STGMIS");
+                    break;
+                case IDMIS:
+                    System.out.println("Session ID mismatch! IDMIS");
+                    break;
+                default:
+                    break;
             }
-        } while (error);
+        }
 
+        /*IMPLEMENT DIFFIE-HELLMAN KEY EXCHANGE*/
 
-        /*Create session envelope for currente session; Later change stage number to 1*/
-        /*SessionEnvelope se = setSessionEnvelope(2, fileName, fbytes);
-        System.out.println(new String(se.Payload.Data));*/
-
-        System.out.println("sending!!");
-        //send("transfer.txt");
     }
 
-    /**NÂO APAGAR SEM ANALISAR!!
-     * CODIGO PARA LER FILE PARA BYTES
-     * @return
-     */
+    public void send(Object se){
+        try{
+            outSkt.writeObject(se);
+        } catch(IOException ioex){
+            ioex.printStackTrace();
+        }
+    }
+
+    public SessionEnvelope receive(){
+        SessionEnvelope se = null;
+        try{
+            se = (SessionEnvelope) inSkt.readObject();
+        } catch(IOException ioex){
+            ioex.printStackTrace();
+        } catch(ClassNotFoundException cnfex){
+            cnfex.printStackTrace();
+        }
+        return se;
+    }
+
+    public byte[] messageDigest(byte[] data){
+        byte[] hashed = null;
+        try{
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            hashed = sha256.digest(data);
+        } catch(NoSuchAlgorithmException nsaex){
+            nsaex.printStackTrace();
+        }
+        return hashed;
+    }
+
+    public boolean compDigest(byte[] base, byte[] comp){
+        if(Arrays.equals(base, messageDigest(comp)))
+            return true;
+        else
+            return false;
+    }
+
+    private static InetAddress getInetAddr(String ip){
+        InetAddress address = null;
+        try {
+            address = InetAddress.getByName(ip);
+        }catch(UnknownHostException uhEX){
+            System.out.println(uhEX.getMessage());
+        }
+        return address;
+    }
+}
+
+/**NÂO APAGAR SEM ANALISAR!!
+ * CODIGO PARA LER FILE PARA BYTES
+ * @return
+ */
    /* public static String mainMenu(){
 
         try {
@@ -91,55 +132,13 @@ public class Client{
         return userInput;
     }*/
 
-    public static void send(SessionEnvelope se){
-        try{
-            outSkt.writeObject(se);
-        } catch(IOException ioex){
-            ioex.printStackTrace();
-        }
-    }
+   /* do {
+            userInput = in.nextLine();
+            File test = new File(userInput); //file to encrypt name input
+            if (!test.exists()) {
+                System.out.println("File does not exist! Try again: ");
+                error = true;
+            }
+        } while (error);
 
-    public static SessionEnvelope receive(){
-        SessionEnvelope se = null;
-        try{
-            se = (SessionEnvelope) inSkt.readObject();
-        } catch(IOException ioex){
-            ioex.printStackTrace();
-        } catch(ClassNotFoundException cnfex){
-            cnfex.printStackTrace();
-        }
-        return se;
-    }
-
-    private static byte[] shaHash(String authParam){
-        byte[] hashed = null;
-        try {
-            String auth = authParam;
-            MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            hashed = sha.digest(auth.getBytes(StandardCharsets.UTF_8));
-        } catch(NoSuchAlgorithmException nsaex){
-            nsaex.printStackTrace();
-        }
-
-        return hashed;
-    }
-
-    public static void initIOStreams() {
-        try {
-            inSkt = new ObjectInputStream(clientSkt.getInputStream());
-            outSkt = new ObjectOutputStream(clientSkt.getOutputStream());
-        } catch(IOException ioex){
-            ioex.printStackTrace();
-        }
-    }
-
-    private static InetAddress getInetAddr(String ip){
-        InetAddress address = null;
-        try {
-            address = InetAddress.getByName(ip);
-        }catch(UnknownHostException uhEX){
-            System.out.println(uhEX.getMessage());
-        }
-        return address;
-    }
-}
+        System.out.println("sending!!");*/
