@@ -2,7 +2,11 @@ package aestextencryption.security;
 
 import javax.crypto.spec.DHParameterSpec;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.KeyPairGenerator;
+import java.security.KeyPair;
+import java.security.SecureRandom;
+import java.security.NoSuchAlgorithmException;
+import java.security.InvalidAlgorithmParameterException;
 import java.util.Random;
 
 public class DH {
@@ -53,9 +57,16 @@ public class DH {
     }
 
     /**
-     * Create shared secret
+     * Generates a Diffie-Hellman shared secret from public value @y
+     * and private key @x.
+     * @param p - modulus
+     * @param x - private key
+     * @param y - received public value
+     * @return - computed DH shared in secret as byte[]
      */
-    public static byte[] genSharedSecret(BigInteger Y){
-        return null;
+    public static byte[] genSharedSecret(BigInteger y, BigInteger x, BigInteger p){
+        BigInteger ss = y.modPow(x, p);
+        return ss.toByteArray();
+
     }
 }

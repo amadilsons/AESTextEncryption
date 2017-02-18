@@ -1,0 +1,26 @@
+Criar objeto de transporte de dados. CHECK
+
+(threads??)
+Criar possibilidade de servidor aceitar múltiplas ligaçãoes simultaneamente
+Adicionar Mensagem de "Hello" inicial; verifica se o servidor está disponivel para receber a ligação 
+
+Criar interface Network com métodos comuns ao cliente e servidor: send(), receive(), messageDigest()...
+
+Criar log de sessões para cada utilizador; Prevenir replay attacks; Ex. Amado *hashSession1* *hashSession2* ...
+
+Cada utilizador terá um log (zipado com a sua pass) igual ao explicado na frase acima. Isto garante que um utilizador nunca escolhe um SessionID previamente usado.
+
+Criar privilégios superuser para registo remoto de outros utilizadores.
+
+Formato do campo Authentication: SHA256( dt.Options + dt.Data + SessionID ) 
+Implementar HMAC para o campo Authentication??? CHECK
+
+Desenvolver protocolo de erro para casos como autenticação falhada CHECK
+
+Implementar Diffie Hellman key exchange. BigInteger.probablePrime() gera primo provável BigInt. AKS primality test para testar se é de facto primo, ou outro algoritmo de teste rápido. CHECK
+
+Criar classe extensivel que implemente métodos da interface Networking.java. Fazer override dos métodos necessários, em cada classe. 
+NOTAS: um subclasse A que extenda outra classe B, herda as variaveis de classe de B
+
+Criar método para verificação da conformidade dos campos da mensagem recebida: SID check, Stage check, Auth check.
+

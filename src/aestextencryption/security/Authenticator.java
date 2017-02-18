@@ -1,17 +1,8 @@
 package aestextencryption.security;
 
-import aestextencryption.rsrc.Networking;
+public interface Authenticator{
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-
-public interface Authenticator extends Networking {
-
-    enum Response{OK, AUTHCPT, IDMIS, STGMIS, NOUSR};
+    enum Response{OK, ERROR, AUTHCPT, IDMIS, STGMIS, NOUSR, SKTCLS};
 
     /**
      * Method to implement needed message exchange for authentication.
@@ -27,37 +18,13 @@ public interface Authenticator extends Networking {
      * @param data - data to be hashed and signed
      * @return - returns HMAC256(data) using @key for signing
      */
-    default byte[] signedHash(byte[] key, byte[] data){
-        byte[] hashed = null;
-        try{
-            SecretKeySpec signKey = new SecretKeySpec(key, "HMmacSHA256");
-            Mac hasher = Mac.getInstance("HmacSHA256");
-            hasher.init(signKey);
-            hashed = hasher.doFinal(data);
-        } catch(NoSuchAlgorithmException nsaex){
-            nsaex.printStackTrace();
-        } catch(InvalidKeyException ikex){
-            ikex.printStackTrace();
-        }
-        return hashed;
-    }
+    byte[] signedHash(byte[] key, byte[] data);
 
     /**
      * Verifies equality between verify and authParam.
      * Computes SHA-256 digest of authParam and compares it to verify.
      * Returns true if equality is verified, returns false otherwise
      */
-    default boolean verifyDigest(byte[] key, byte[] verify, byte[] auth){
-        byte[] hashed;
-        //Verification of equality between hashed and verify
-        hashed = signedHash(key, auth);
-        if(!Arrays.equals(verify, hashed))
-            return false;
-        return true;
-    }
-
-    /**
-     * Implementation of Network interface.
-     */
+    boolean hashSignVerify(byte[] key, byte[] verify, byte[] auth);
 
 }

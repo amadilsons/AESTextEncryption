@@ -1,10 +1,8 @@
 package aestextencryption.rsrc;
 
+import aestextencryption.security.Authenticator;
+
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Random;
 
 /**
@@ -14,19 +12,13 @@ import java.util.Random;
  * STAGE_3: End session
  */
 public class SessionEnvelope implements Serializable{
+
     private int SessionID;
     private int SessionStage;
     private String Authentication;
     private DataTransporter Payload;
 
-    public void createID(){
-        Random rand = new Random();
-        this.SessionID = rand.nextInt(3000) + 3000; //ID between 3000 and 6000
-    }
-
-    public void incID(){
-        this.SessionID++;
-    }
+    public SessionEnvelope(){}
 
     public int getSID() {
         return this.SessionID;
@@ -44,6 +36,15 @@ public class SessionEnvelope implements Serializable{
         return this.Payload;
     }
 
+    public void createID(){
+        Random rand = new Random();
+        this.SessionID = rand.nextInt(3000) + 3000; //ID between 3000 and 6000
+    }
+
+    public void incID(){
+        this.SessionID++;
+    }
+
     public void setSessionEnvelope(int stage, DataTransporter dt, String auth){
         this.SessionStage = stage;
         this.Payload = dt;
@@ -53,8 +54,25 @@ public class SessionEnvelope implements Serializable{
     public void setSessionEnvelope(int sid, int stage, DataTransporter dt, String auth){
         this.SessionID = sid;
         this.SessionStage = stage;
-        this.Payload = dt;
         this.Authentication = auth;
+        this.Payload = dt;
+    }
+
+    /**
+     * Runs conformity check to @this sessionEnvelope.
+     * @param sid - SID to conform to
+     * @param stage - Stage to conform to
+     * @return - Response according to test results
+     */
+    public Authenticator.Response conformityCheck(int sid, int stage){
+        if(this.SessionID != sid || sid > 6000 || sid < 3000)
+            return Authenticator.Response.IDMIS;
+        else if(this.SessionStage != stage){
+            if(this.SessionStage == 3)
+                return Authenticator.Response.ERROR;
+            return Authenticator.Response.STGMIS;
+        }
+        return Authenticator.Response.OK;
     }
 
 }

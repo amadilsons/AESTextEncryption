@@ -4,9 +4,9 @@ import java.io.Serializable;
 
 public class DataTransporter implements Serializable{
     private String Options;
-    private byte[] Data;
+    private String Data;
 
-    public DataTransporter(String options, byte[] data) {
+    public DataTransporter(String options, String data) {
         this.Options = options;
         this.Data = data;
     }
@@ -15,7 +15,7 @@ public class DataTransporter implements Serializable{
         return this.Options;
     }
 
-    public byte[] getData(){
+    public String getData(){
         return this.Data;
     }
 
