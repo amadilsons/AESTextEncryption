@@ -1,5 +1,6 @@
 package aestextencryption.rsrc;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -26,37 +27,41 @@ public class NetworkingAbstract implements Networking{
      * Sends message through socket output stream, outSkt.
      * Initializes outSkt class variable when first called.
      * @param se - Object (SessionEnvelope) to be sent through outSkt.
+     * @return - true for success, false for IOexception
      */
-    public void send(Object se){
+    public boolean send(Object se){
         if(outSkt == null)
             try{
                 outSkt = new ObjectOutputStream(sessionSkt.getOutputStream());
             } catch(IOException ioex){
                 ioex.printStackTrace();
             }
-        try{
+        try {
             outSkt.writeObject(se);
         } catch(IOException ioex){
-            ioex.printStackTrace();
+            return false;//stream probably closed
         }
+        return true;
     }
 
     /**
      * Implements Network interface method receive().
      * Receives message through socket input stream, inSkt.
      * Initializes inSkt class variable when first called.
-     * @return - returns received (Object) message
+     * @return - returns received (Object) message or null if fail to read from stream.
      */
-    public Object receive(){
+    public Object receive() {
         SessionEnvelope se = null;
-        if(inSkt == null)
+        if (inSkt == null)
             try {
                 inSkt = new ObjectInputStream(sessionSkt.getInputStream());
-            } catch(IOException ioex){
+            } catch (IOException ioex) {
                 ioex.printStackTrace();
             }
-        try{
+        try {
             se = (SessionEnvelope) inSkt.readObject();
+        } catch(EOFException eofex){
+            return null; //stream probably closed
         } catch(IOException ioex){
             ioex.printStackTrace();
         } catch(ClassNotFoundException cnfex){

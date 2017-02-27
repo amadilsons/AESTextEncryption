@@ -35,7 +35,7 @@ public class ClientAuthenticator extends AuthenticatorAbstract {
     /**
      * Implements Authenticator interface method startAuthentication().
      * Handles client-side authentication protocol.
-     * @return - returns Authenticator.Response depending on authentication status
+     * @return - returns Authenticator.Response depending on authentication status; OK, ERROR or SKTCLS.
      */
     @Override
     public Authenticator.Response startAuthentication() {
@@ -55,27 +55,22 @@ public class ClientAuthenticator extends AuthenticatorAbstract {
 
         /*Verify if authenticated into the server; If so, authenticate server response*/
         se = (SessionEnvelope) receive();
-        if((rsp = se.conformityCheck(nextID, 0)) != Response.OK)
-            if(rsp == Response.ERROR) { //Received error message
+        if((rsp = se.conformityCheck(nextID, 0)) != Response.OK) {
+            if (rsp == Response.ERROR) { //Error message received
                 paramAux = se.getDT().getOpt() + Integer.toString(se.getSID());
-                if (!compDigest(decode(se.getAuth()), paramAux.getBytes())) {
-                    return Response.AUTHCPT;
-                }
-                try{
-                    System.out.println(se.getDT().getOpt());
-                    sessionSkt.close(); //close connection with server;
-                } catch(IOException ioex){
-                    ioex.printStackTrace();
-                }
-                return Response.SKTCLS;
-            } else //Error in conformity check (stage or sid mismatch)
-                return rsp;
+                if (!compDigest(decode(se.getAuth()), paramAux.getBytes()))
+                    return Response.SKTCLS;
+                System.out.println(se.getDT().getOpt());
+            }
+            return rsp;
+        }
 
         paramAux = se.getDT().getOpt() + Integer.toString(se.getSID());
-        if (!hashSignVerify(userPass.getBytes(), decode(se.getAuth()), paramAux.getBytes()) && !se.getDT().getOpt().equals("EncryptionServer@" + Integer.toString(sessionSkt.getPort())))
-            return Response.AUTHCPT;
+        if (!hashSignVerify(userPass.getBytes(), decode(se.getAuth()), paramAux.getBytes()) && !se.getDT().getOpt().equals("EncryptionServer@" + Integer.toString(sessionSkt.getPort()))){
+            System.out.println("Corrupt MAC in received message! AUTH_2");
+            return Response.SKTCLS;
+        }
 
-        System.out.println("Authentication success!");
         sessionID = se.getSID();
         return Response.OK;
     }

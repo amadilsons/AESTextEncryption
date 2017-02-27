@@ -2,14 +2,12 @@ package aestextencryption.server;
 
 import aestextencryption.rsrc.DataTransporter;
 import aestextencryption.rsrc.SessionEnvelope;
-import aestextencryption.rsrc.ReceiveThread;
 import aestextencryption.security.Authenticator;
 import aestextencryption.security.AuthenticatorAbstract;
 
 public class ServerAuthenticator extends AuthenticatorAbstract{
 
     public static ServerFileManager sfm;
-    public ReceiveThread  rcv;
     private static String sessionUsrPass;
     private int sessionID; //current session ID
 
@@ -18,12 +16,9 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
      * Initializes class variables and socket input stream, inSkt.
      * outSkt is not initialized due to error when initializing both IO streams consecutevly
      */
+
     public ServerAuthenticator(ServerFileManager sfm){
         this.sfm = sfm;
-
-            rcv = new ReceiveThread(inSkt);
-            rcv.start();
-
     }
 
     public int getCurrentSID(){
@@ -37,17 +32,13 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
      * Handles server-side authentication protocol.
      * @return - returns Authenticator.Response depending on authentication status
      */
-
+    @Override
     public Authenticator.Response startAuthentication(){
         SessionEnvelope msg;
         String param;
         Response rsp;
 
-        rcv.threadWait(200);
-        msg = rcv.msg;
-        //rcv.END_THREAD = true;
-        //notify();
-        rcv.threadStop();
+        msg = (SessionEnvelope) receive();
         if ((rsp = msg.conformityCheck(msg.getSID(), 0)) != Response.OK)//rsp is never ERROR (stage 3) in first exchanged message
             return rsp;
 
@@ -58,7 +49,7 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
 
         param = msg.getDT().getOpt() + Integer.toString(sessionID);
         if (!hashSignVerify(sessionUsrPass.getBytes(), decode(msg.getAuth()), param.getBytes())) //Verify received Authentication using shared secret
-            return Response.AUTHCPT;
+            return Response.WRONGPWD;
 
         sessionID = msg.getSID(); //update current session ID
         DataTransporter dt = new DataTransporter("EncryptionServer@" + Integer.toString(sessionSkt.getLocalPort()), null);
@@ -67,7 +58,6 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
         send(msg);
 
         return Response.OK;
-
     }
 
 }

@@ -15,8 +15,9 @@ public interface Networking{
      * Send (Object) message se through output stream.
      * Output stream must be defined as class variable.
      * @param se - (Object) message to be sent
+     * @return - true for success, false for failure
      */
-    void send(Object se);
+    boolean send(Object se);
 
     /**
      * Receive (Object) message through input stream.

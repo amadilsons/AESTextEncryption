@@ -7,6 +7,7 @@ import aestextencryption.security.Authenticator;
 import aestextencryption.security.Authenticator.Response;
 import aestextencryption.security.DH;
 
+import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import java.io.ByteArrayInputStream;
@@ -19,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import static java.lang.System.exit;
-
 public class Client extends NetworkingAbstract {
     private static String userName;
     private static String userPass;
@@ -29,8 +28,9 @@ public class Client extends NetworkingAbstract {
 
     public Client(){}
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         in = new Scanner(System.in);
+        Authenticator.Response rsp;
 
         System.out.println("Welcome to the Encrypted Data Storage App!\nUser Name: ");
         userName = in.nextLine();
@@ -41,55 +41,64 @@ public class Client extends NetworkingAbstract {
         InetAddress serverAddr = getInetAddr(args[0]);
         try {
             sessionSkt = new Socket(serverAddr, Integer.parseInt(args[1]));
-        } catch(IOException ioex) {
+        } catch (IOException ioex) {
             ioex.printStackTrace();
         }
 
         Client client = new Client(); //Get new instance of Client for established session
         ClientAuthenticator ca = new ClientAuthenticator(userName, userPass);
-        int sid = client.authenticateSession(ca); //Authenticate session
+
+        if (client.authenticateSession(ca) == Response.OK){ //Authenticate session
+            if (client.keyExchangeDH(ca.getCurrentSID(), ca) != Response.OK)
+                closeSession();
+        } else
+            closeSession();
+
+        /*User indicates wether he wants to store, or retrive a file from the server*/
+        switch(in.nextLine().toLowerCase()){
+            case "s":
+                break;
+            case "r":
+                break;
+            default:
+                System.out.println("Unrecognized input command!");
+                break;
+        }
 
         if(!sessionSkt.isClosed())
-            client.keyExchangeDH(sid, ca);
-        else{
-            System.out.println("Client program reached an error! Exiting..");
-            exit(0);
+            closeSession();
+        System.out.println("Session terminated!");
+    }
+
+    public Response authenticateSession(ClientAuthenticator ca) {
+        Authenticator.Response rsp;
+        if ((rsp = ca.startAuthentication()) != Authenticator.Response.OK){
+            if(rsp == Response.SKTCLS)
+                System.out.println("An error ocurred with the received packet..");
+            return rsp;
+        } else{
+            System.out.println("Authentication success!");
+            return Response.OK;
         }
     }
 
-    private int authenticateSession(ClientAuthenticator ca) {
-        Response rsp;
-        /*Begin authentication protocol*/
-        if ((rsp = ca.startAuthentication()) != Authenticator.Response.OK) {
-            if (rsp != Response.SKTCLS) {
-                closeSession();
-                System.out.println("Auhentication failed!");
-                printError(0, rsp);
-
-            }
-            return -1;
-        } else {
-            return ca.getCurrentSID();
-        }
-    }
-
-    public void keyExchangeDH(int currentSID, ClientAuthenticator ca){
+    public Response keyExchangeDH(int currentSID, ClientAuthenticator ca){
         Response rsp;
         String paramAux;
         SessionEnvelope msg;
         DataTransporter dt;
 
+        System.out.println("Exchanging keys..");
         msg = (SessionEnvelope) receive();
-        if ((rsp = msg.conformityCheck(currentSID + 2, 1)) != Response.OK) { //First message in stage 1 is never an error message
-            System.out.println("Key exchange failed!\nIn received package:");
-            printError(1, rsp);
-            return;
+        if((rsp = msg.conformityCheck(currentSID + 2, 1)) != Response.OK) { //First message in stage 1 is never an error message
+            System.out.println("An error ocurred with the received packet..");
+            return rsp;
         }
 
         paramAux = msg.getDT().getOpt() + msg.getDT().getData() + Integer.toString(msg.getSID());
-        if (!ca.hashSignVerify(userPass.getBytes(), decode(msg.getAuth()), paramAux.getBytes())) {
-            printError(1, Response.AUTHCPT);
-            return;
+        if(!ca.hashSignVerify(userPass.getBytes(), decode(msg.getAuth()), paramAux.getBytes())) {
+            System.out.println("Corrupt MAC in received message! DH_1");
+            return Response.SKTCLS;
         }
 
         /*Read DH parameters (P,G) and DH server public key, Y, from msg Data*/
@@ -106,50 +115,30 @@ public class Client extends NetworkingAbstract {
         DHParameterSpec dhparam = DH.genDHParam(dhValues.get(0), dhValues.get(1));
         KeyPair dhkp = DH.genKeys(dhparam);//Generates private key, X, and corresponding Y value
         DHPublicKey dhpub = (DHPublicKey) dhkp.getPublic();
+        DHPrivateKey dhpriv = (DHPrivateKey) dhkp.getPrivate();
 
         dt = new DataTransporter(null, encode(dhpub.getY().toByteArray()));
         paramAux = dt.getData() + Integer.toString(msg.getSID() + 1);
         msg.incID();
         msg.setSessionEnvelope(1, dt, encode(ca.signedHash(userPass.getBytes(), paramAux.getBytes())));
-        send(msg);
+        if(!send(msg)){
+            System.out.println("Connection terminated by the server..");
+            return Response.SKTCLS;
+        }
 
         /*Obtaining and generating 256 bit AES256 key. The DH shared secret is hashed and then
-       serves as input to the Authenticator.signedHash() using the user pwd as signature. This
-       ensures user authenticated keys that dont need to be stored in a database, but rather
-       calculated based on access-controled user pwd. */
+        serves as input to the Authenticator.signedHash() using the user pwd as signature. This
+        ensures user authenticated keys that dont need to be stored in a database, but rather
+        calculated based on access-controled user pwd. */
 
-    }
-
-    public static void printError(int stage, Response rsp){
-        System.out.println("Error in received package!");
-        switch(stage){
-            case 0:
-                System.out.println("Authentication failure!");
-                break;
-            case 1:
-                System.out.println("Key exchange failure!");
-                break;
-            default:
-                break;
-
-        }
-        switch(rsp){
-            case AUTHCPT:
-                System.out.println("Authentication field corrupted! AUTHCPT");
-                break;
-            case STGMIS:
-                System.out.println("Session stage mismatch! (stage neither 0 nor 3) STGMIS");
-                break;
-            case IDMIS:
-                System.out.println("Session ID mismatch! IDMIS");
-                break;
-            default:
-                break;
-        }
+        sharedSecret = DH.genSharedSecret(dhValues.get(2), dhpriv.getX(), dhparam.getP());
+        System.out.println("Key exchange success!");
+        return Response.OK;
     }
 
     public static void closeSession(){
         try{
+            System.out.println("Terminating session..");
             sessionSkt.close();
         } catch(IOException ioex){
             ioex.printStackTrace();

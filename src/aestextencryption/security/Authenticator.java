@@ -2,7 +2,7 @@ package aestextencryption.security;
 
 public interface Authenticator{
 
-    enum Response{OK, ERROR, AUTHCPT, IDMIS, STGMIS, NOUSR, SKTCLS};
+    enum Response{OK, ERROR, NOUSR, WRONGPWD, SKTCLS}
 
     /**
      * Method to implement needed message exchange for authentication.

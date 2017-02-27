@@ -65,12 +65,15 @@ public class SessionEnvelope implements Serializable{
      * @return - Response according to test results
      */
     public Authenticator.Response conformityCheck(int sid, int stage){
-        if(this.SessionID != sid || sid > 6000 || sid < 3000)
-            return Authenticator.Response.IDMIS;
-        else if(this.SessionStage != stage){
-            if(this.SessionStage == 3)
+        if(stage == 0) {
+            if (this.SessionID != sid || sid > 6000 || sid < 3000)
+                return Authenticator.Response.SKTCLS;
+        } else if(this.SessionID != sid)
+            return Authenticator.Response.SKTCLS;
+        if(this.SessionStage != stage){
+            if (this.SessionStage == 3)
                 return Authenticator.Response.ERROR;
-            return Authenticator.Response.STGMIS;
+            return Authenticator.Response.SKTCLS;
         }
         return Authenticator.Response.OK;
     }
