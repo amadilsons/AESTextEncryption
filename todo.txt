@@ -19,8 +19,31 @@ Desenvolver protocolo de erro para casos como autenticação falhada CHECK
 
 Implementar Diffie Hellman key exchange. BigInteger.probablePrime() gera primo provável BigInt. AKS primality test para testar se é de facto primo, ou outro algoritmo de teste rápido. CHECK
 
-Criar classe extensivel que implemente métodos da interface Networking.java. Fazer override dos métodos necessários, em cada classe. 
+Criar classe extensivel que implemente métodos da interface Networking.java. Fazer override dos métodos necessários, em cada classe. CHECK
 NOTAS: um subclasse A que extenda outra classe B, herda as variaveis de classe de B
 
 Criar método para verificação da conformidade dos campos da mensagem recebida: SID check, Stage check, Auth check.
 
+MongoDB:
+Servidor tem MongoClient que apenas acede à coleção userRegister que contem todas as informaçãos relativas aos users.
+A coleção userRegister tem os clientes do serviço formatados no seguinte documento:
+{
+	userName: ,
+	password: ,
+	sessionCodes: , /*contem as hashs de cada sessão já alguma vez mantida pelo utilizador*/
+	storedFiles: , /*IDs dos ficheiros contidos na coleção fileRepository
+	dbActions: {
+					inserts/updates/searches: { 
+													amount: , 
+													targetFiles: [ {id: , seq: /*file sequence number*/]
+											  {
+			   }
+}
+
+A coleção fileRepository contem os ficheiros formatados segundo o seguinte documento:
+{
+	name: , /*nome do ficheiro incluindo a extensão*/
+	type: , /*tipo do ficheiro, eg. docx, pdf, txt, jpeg ...*/
+	path: , /*path relativo à diretoria da base de dados para o ficheiro*/
+	encryptionKey: , /*key used to encrypt the file*/
+}

@@ -4,10 +4,11 @@ import aestextencryption.rsrc.DataTransporter;
 import aestextencryption.rsrc.SessionEnvelope;
 import aestextencryption.security.Authenticator;
 import aestextencryption.security.AuthenticatorAbstract;
+import aestextencryption.server.database.ServerDatabaseHandler;
 
 public class ServerAuthenticator extends AuthenticatorAbstract{
 
-    public static ServerFileManager sfm;
+    public ServerDatabaseHandler dbHandler;
     private static String sessionUsrPass;
     private int sessionID; //current session ID
 
@@ -17,8 +18,8 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
      * outSkt is not initialized due to error when initializing both IO streams consecutevly
      */
 
-    public ServerAuthenticator(ServerFileManager sfm){
-        this.sfm = sfm;
+    public ServerAuthenticator(ServerDatabaseHandler handler){
+         this.dbHandler = handler;
     }
 
     public int getCurrentSID(){
@@ -44,7 +45,7 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
 
         sessionID = msg.getSID();
         msg.incID();//increment ID; process repeated in every message exchange
-        if ((sessionUsrPass = sfm.getUserPass(msg.getDT().getOpt())) == null)  //Obtain shared pwd between server and current session user from stored file
+        if ((sessionUsrPass = dbHandler.getUserPass(msg.getDT().getOpt())) == null)  //Obtain shared pwd between server and current session user from stored file
             return Response.NOUSR;
 
         param = msg.getDT().getOpt() + Integer.toString(sessionID);

@@ -13,12 +13,15 @@ import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
 
+
 public class ServerFileManager{
     private final static String P1 = "/home/jasa/Desktop/Server/storage/";
     private final static String P2 = "/home/jasa/Desktop/Server/keys/";
     private final static String P3 = "/home/jasa/Desktop/Server/register/";
     private final static String SUDOPASS = "jasamado123";
     private final static String USEREG = "regUsrs";
+
+    //private static MongoClient mongoClient = new MongoClient(new MongoClientURI("mongo://localhost:27017"));
 
     /**
      * Create necessary directories for server

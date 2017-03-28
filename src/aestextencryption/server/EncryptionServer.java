@@ -3,6 +3,7 @@ package aestextencryption.server;
 import aestextencryption.rsrc.*;
 import aestextencryption.security.Authenticator.Response;
 import aestextencryption.security.DH;
+import aestextencryption.server.database.ServerDatabaseHandler;
 
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
@@ -16,6 +17,7 @@ import java.security.KeyPair;
 public class EncryptionServer extends NetworkingAbstract implements Runnable{
 
     private byte[] sharedSecret;
+
 
     public EncryptionServer(){}
 
@@ -37,9 +39,9 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
 
     @Override
     public void run(){
-        ServerFileManager sfm = new ServerFileManager();
+        ServerDatabaseHandler dbHandler = new ServerDatabaseHandler();
         EncryptionServer server = new EncryptionServer(); //Get new instance of EncryptionServer for established session
-        ServerAuthenticator sa = new ServerAuthenticator(sfm);
+        ServerAuthenticator sa = new ServerAuthenticator(dbHandler);
 
         if(server.authenticateSession(sa) == Response.OK) { //If authentication successfull continue to Diffie-Hellman key exchange
             if (server.keyExchangeDH(sa.getCurrentSID(), sa) != Response.OK)
@@ -112,7 +114,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
             return Response.SKTCLS;
         }
         currentSID += 3; //update current session ID for posterior comparison
-
+        
         if((msg = (SessionEnvelope) receive()) != null){ //Check if EOFException was thrown at receive()
             if((rsp = msg.conformityCheck(currentSID, 1)) != Response.OK) {
                 System.out.println("An error ocurred with the received packet..");

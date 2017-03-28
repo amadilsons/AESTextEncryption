@@ -30,7 +30,6 @@ public class Client extends NetworkingAbstract {
 
     public static void main(String[] args) {
         in = new Scanner(System.in);
-        Authenticator.Response rsp;
 
         System.out.println("Welcome to the Encrypted Data Storage App!\nUser Name: ");
         userName = in.nextLine();
@@ -55,7 +54,7 @@ public class Client extends NetworkingAbstract {
             closeSession();
 
         /*User indicates wether he wants to store, or retrive a file from the server*/
-        switch(in.nextLine().toLowerCase()){
+        /*switch(in.nextLine().toLowerCase()){
             case "s":
                 break;
             case "r":
@@ -63,7 +62,7 @@ public class Client extends NetworkingAbstract {
             default:
                 System.out.println("Unrecognized input command!");
                 break;
-        }
+        }*/
 
         if(!sessionSkt.isClosed())
             closeSession();
