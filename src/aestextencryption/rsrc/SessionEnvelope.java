@@ -36,8 +36,12 @@ public class SessionEnvelope implements Serializable{
         return this.Payload;
     }
 
+    /**
+     * Uses current time in milliseconds as seed to Random object
+     */
     public void createID(){
         Random rand = new Random();
+        rand.setSeed(System.currentTimeMillis());
         this.SessionID = rand.nextInt(3000) + 3000; //ID between 3000 and 6000
     }
 

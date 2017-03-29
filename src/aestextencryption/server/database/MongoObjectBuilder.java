@@ -16,9 +16,6 @@ public class MongoObjectBuilder{
 
     public MongoObjectBuilder(){}
 
-    public BasicDBObject buildUserNameQuery(String userName){
-        return new BasicDBObject("userName", userName);
-    }
 
     public BasicDBObject buildSimpleDBObject(String key, Object value){
         return new BasicDBObject(key, value);

@@ -9,7 +9,7 @@ import aestextencryption.server.database.ServerDatabaseHandler;
 public class ServerAuthenticator extends AuthenticatorAbstract{
 
     public ServerDatabaseHandler dbHandler;
-    private static String sessionUsrPass;
+    private String sessionUsrPass;
     private int sessionID; //current session ID
 
     /**
@@ -26,7 +26,9 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
         return sessionID;
     }
 
-    public String getUsrPass(){ return sessionUsrPass; }
+    public void updateCurrentSID(int sid){ this.sessionID = sid; }
+
+    public String getUsrPass(){ return this.sessionUsrPass; }
 
     /**
      * Implements Authenticator interface method startAuthentication().
@@ -49,7 +51,7 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
             return Response.NOUSR;
 
         param = msg.getDT().getOpt() + Integer.toString(sessionID);
-        if (!hashSignVerify(sessionUsrPass.getBytes(), decode(msg.getAuth()), param.getBytes())) //Verify received Authentication using shared secret
+        if (!hashSignVerify(sessionUsrPass.getBytes(), decode(msg.getAuth()), param.getBytes())) //Verify received Authentication using shared password
             return Response.WRONGPWD;
 
         sessionID = msg.getSID(); //update current session ID

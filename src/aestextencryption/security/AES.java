@@ -54,9 +54,12 @@ public class AES {
      * @param keySize - size of the AES key to generate. Sizes can only be 128, 192 and 256.
      */
     private static void generateKey(int keySize){
+        if(keySize != 128 && keySize != 192 && keySize != 256)
+            return;
+
         try {
             KeyGenerator keygen = KeyGenerator.getInstance("AES");
-            keygen.init(256);
+            keygen.init(keySize);
             skey = keygen.generateKey();
         }
         catch(NoSuchAlgorithmException nsaex){

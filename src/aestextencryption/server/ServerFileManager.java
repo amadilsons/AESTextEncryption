@@ -15,7 +15,7 @@ import net.lingala.zip4j.util.Zip4jConstants;
 
 
 public class ServerFileManager{
-    private final static String P1 = "/home/jasa/Desktop/Server/storage/";
+    private final static String P1 = "/home/jasa/Desktop/Code/Java/aes_text_encryption/database/storage/";
     private final static String P2 = "/home/jasa/Desktop/Server/keys/";
     private final static String P3 = "/home/jasa/Desktop/Server/register/";
     private final static String SUDOPASS = "jasamado123";
@@ -29,13 +29,9 @@ public class ServerFileManager{
      */
     public ServerFileManager(){
         Path storageDir = Paths.get(P1);
-        Path keysDir = Paths.get(P2);
-        Path regDir = Paths.get(P3);
 
         try {
             Files.createDirectories(storageDir);
-            Files.createDirectory(keysDir);
-            Files.createDirectory(regDir);
         } catch(FileAlreadyExistsException faeex){
             System.out.println("Server directories found..");
         } catch(IOException ioex){

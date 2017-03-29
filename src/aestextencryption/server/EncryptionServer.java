@@ -114,18 +114,24 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
             return Response.SKTCLS;
         }
         currentSID += 3; //update current session ID for posterior comparison
-        
+        sa.updateCurrentSID(currentSID);
+
         if((msg = (SessionEnvelope) receive()) != null){ //Check if EOFException was thrown at receive()
+
+            paramAux = msg.getDT().getOpt() + msg.getDT().getData() + Integer.toString(sa.getCurrentSID()); //params for Authentication field comparison
+
             if((rsp = msg.conformityCheck(currentSID, 1)) != Response.OK) {
                 System.out.println("An error ocurred with the received packet..");
                 return rsp;
-            } else
+            } else if(sa.hashSignVerify(sa.getUsrPass().getBytes(), decode(msg.getAuth()), paramAux.getBytes()))
                 sharedSecret = DH.genSharedSecret(new BigInteger(decode(msg.getDT().getData())), dhpriv.getX(), dhparam.getP());
+            else
+                return Response.WRONGPWD;
         } else {
             System.out.println("Connection terminated by the client..");
             return Response.SKTCLS;
         }
-
+        sa.updateCurrentSID(msg.getSID()); //Update SID in this session ServerAuthenticator
         System.out.println("Key exchange success!");
         return Response.OK;
     }

@@ -10,8 +10,7 @@ import aestextencryption.security.DH;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -19,6 +18,8 @@ import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class Client extends NetworkingAbstract {
     private static String userName;
@@ -26,10 +27,13 @@ public class Client extends NetworkingAbstract {
     private static byte[] sharedSecret;
     private static Scanner in;
 
+    public static final int FILE_MAX_SIZE = 8000; //bytes
+
     public Client(){}
 
     public static void main(String[] args) {
         in = new Scanner(System.in);
+        boolean validInput;
 
         System.out.println("Welcome to the Encrypted Data Storage App!\nUser Name: ");
         userName = in.nextLine();
@@ -54,15 +58,26 @@ public class Client extends NetworkingAbstract {
             closeSession();
 
         /*User indicates wether he wants to store, or retrive a file from the server*/
-        /*switch(in.nextLine().toLowerCase()){
-            case "s":
-                break;
-            case "r":
-                break;
-            default:
-                System.out.println("Unrecognized input command!");
-                break;
-        }*/
+        System.out.println("You are now securely connnected to the server!");
+
+        do {
+            validInput = true;
+            System.out.println("u/U upload file  or d/D dowwnload file");
+            switch (in.nextLine().toLowerCase()) {
+                case "u":
+                    System.out.println("Specify absolute path to file: ");
+                    break;
+
+                case "d":
+
+                    break;
+
+                default:
+                    System.out.println("Unrecognized input command!");
+                    validInput = false;
+                    break;
+            }
+        }while(!validInput);
 
         if(!sessionSkt.isClosed())
             closeSession();
@@ -131,7 +146,33 @@ public class Client extends NetworkingAbstract {
         calculated based on access-controled user pwd. */
 
         sharedSecret = DH.genSharedSecret(dhValues.get(2), dhpriv.getX(), dhparam.getP());
+        ca.updateCurrentSID(msg.getSID()); //update SID in this session ClientAuthenticator
         System.out.println("Key exchange success!");
+        return Response.OK;
+    }
+
+    public Response uploadFile(ClientAuthenticator ca) {
+        Scanner input = new Scanner(System.in);
+        String pathToFile = input.nextLine();
+        byte[] fileBytes = new byte[FILE_MAX_SIZE];
+
+        /*Find, test file existance and get its bytes*/
+        File file = new File(pathToFile);
+        if (!file.isFile())
+            return Response.ERROR;
+
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            fis.read(fileBytes);
+        } catch (FileNotFoundException fnfex) {
+            System.out.println("Error reading from file!");
+            fnfex.printStackTrace();
+            return Response.ERROR;
+        } catch (IOException ioex) {
+            ioex.printStackTrace();
+        }
+
+
         return Response.OK;
     }
 

@@ -9,9 +9,9 @@ import java.io.IOException;
 
 public class ClientAuthenticator extends AuthenticatorAbstract {
 
-    private static String userName;
-    private static String userPass;
-    private static int sessionID;
+    private String userName;
+    private String userPass;
+    private int sessionID;
 
 
     /**
@@ -31,6 +31,8 @@ public class ClientAuthenticator extends AuthenticatorAbstract {
     public int getCurrentSID(){
         return sessionID;
     }
+
+    public void updateCurrentSID(int sid){ this.sessionID = sid; }
 
     /**
      * Implements Authenticator interface method startAuthentication().
