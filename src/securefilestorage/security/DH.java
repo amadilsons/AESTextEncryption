@@ -1,4 +1,4 @@
-package aestextencryption.security;
+package securefilestorage.security;
 
 import javax.crypto.spec.DHParameterSpec;
 import java.math.BigInteger;

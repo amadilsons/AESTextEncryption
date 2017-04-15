@@ -1,4 +1,4 @@
-package aestextencryption.rsrc;
+package securefilestorage.rsrc;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -18,26 +18,26 @@ public class NetworkingAbstract implements Networking{
      * of this class to share the values attributed to the variables
      * between them.
      */
-    protected static Socket sessionSkt;
-    protected static ObjectOutputStream outSkt;
-    protected static ObjectInputStream inSkt;
+    protected Socket sessionSkt;
+    protected ObjectOutputStream outSkt = null;
+    protected ObjectInputStream inSkt = null;
 
     /**
      * Implements Network interface method send().
      * Sends message through socket output stream, outSkt.
-     * Initializes outSkt class variable when first called.
+     * Initializes outSkt instance variable when first called.
      * @param se - Object (SessionEnvelope) to be sent through outSkt.
      * @return - true for success, false for IOexception
      */
     public boolean send(Object se){
-        if(outSkt == null)
+        if(this.outSkt == null)
             try{
-                outSkt = new ObjectOutputStream(sessionSkt.getOutputStream());
+                this.outSkt = new ObjectOutputStream(this.sessionSkt.getOutputStream());
             } catch(IOException ioex){
                 ioex.printStackTrace();
             }
         try {
-            outSkt.writeObject(se);
+            this.outSkt.writeObject(se);
         } catch(IOException ioex){
             return false;//stream probably closed
         }
@@ -47,19 +47,19 @@ public class NetworkingAbstract implements Networking{
     /**
      * Implements Network interface method receive().
      * Receives message through socket input stream, inSkt.
-     * Initializes inSkt class variable when first called.
+     * Initializes inSkt instance variable when first called.
      * @return - returns received (Object) message or null if fail to read from stream.
      */
     public Object receive() {
         SessionEnvelope se = null;
-        if (inSkt == null)
+        if (this.inSkt == null)
             try {
-                inSkt = new ObjectInputStream(sessionSkt.getInputStream());
+                this.inSkt = new ObjectInputStream(this.sessionSkt.getInputStream());
             } catch (IOException ioex) {
                 ioex.printStackTrace();
             }
         try {
-            se = (SessionEnvelope) inSkt.readObject();
+            se = (SessionEnvelope) this.inSkt.readObject();
         } catch(EOFException eofex){
             return null; //stream probably closed
         } catch(IOException ioex){

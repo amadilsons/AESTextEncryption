@@ -1,6 +1,6 @@
-package aestextencryption.security;
+package securefilestorage.security;
 
-import aestextencryption.rsrc.NetworkingAbstract;
+import securefilestorage.rsrc.NetworkingAbstract;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

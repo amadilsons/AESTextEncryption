@@ -1,4 +1,4 @@
-package aestextencryption.server;
+package securefilestorage.server;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -15,20 +15,22 @@ import net.lingala.zip4j.util.Zip4jConstants;
 
 
 public class ServerFileManager{
-    private final static String P1 = "/home/jasa/Desktop/Code/Java/aes_text_encryption/database/storage/";
-    private final static String P2 = "/home/jasa/Desktop/Server/keys/";
-    private final static String P3 = "/home/jasa/Desktop/Server/register/";
+    private final static String STORAGE_PATH = "/home/jasa/Desktop/Code/Java/secure_file_storage/database/_file_storage/";
     private final static String SUDOPASS = "jasamado123";
     private final static String USEREG = "regUsrs";
+    private final static int MAX_FILE_SIZE = 8000;
+
+    /*Just to stop errors
+        TO BE REMOVED
+     */
+    private final static String P1 = "regUsrs";
+    private final static String P2 = "regUsrs";
+    private final static String P3 = "regUsrs";
 
     //private static MongoClient mongoClient = new MongoClient(new MongoClientURI("mongo://localhost:27017"));
 
-    /**
-     * Create necessary directories for server
-     * Ignored if directories already exist
-     */
-    public ServerFileManager(){
-        Path storageDir = Paths.get(P1);
+    static{
+        Path storageDir = Paths.get(STORAGE_PATH);
 
         try {
             Files.createDirectories(storageDir);
@@ -37,9 +39,17 @@ public class ServerFileManager{
         } catch(IOException ioex){
             ioex.printStackTrace();
         }
+    }
+
+    /**
+     * Create necessary directories for server
+     * Ignored if directories already exist
+     */
+    public ServerFileManager(){
+
 
         /*Create user registry file and zip it with administrator password, if non-existent*/
-        try{
+        /*try{
             ZipFile testZip = new ZipFile(P3 + USEREG + ".zip");
             if(!testZip.isValidZipFile()) {
                 System.out.println("Creating user register file..");
@@ -57,8 +67,68 @@ public class ServerFileManager{
             }
         } catch(ZipException zipex){
             zipex.printStackTrace();
+        }*/
+
+    }
+
+    public boolean createDir(String userName){
+        boolean ret = false;
+
+        File theDir = new File(STORAGE_PATH + userName);
+        try{
+            ret = theDir.mkdir();
+        }
+        catch(SecurityException sex){ //SEX
+            sex.printStackTrace();
         }
 
+        return ret;
+    }
+
+    public boolean saveFile(String dirName, String fileName, byte[] fileBytes){
+        boolean result = false;
+
+        StringBuilder sb = new StringBuilder(STORAGE_PATH);
+        sb.append(dirName); sb.append("/");
+        sb.append(fileName);
+
+        try {
+            File fileToStore = new File(sb.toString());
+            FileOutputStream fos = new FileOutputStream(fileToStore);
+            fos.write(fileBytes, 0, fileBytes.length);
+            fos.close();
+            result = true;
+        } catch(FileNotFoundException fnfex){
+            fnfex.printStackTrace();
+        } catch(IOException ioex){
+            ioex.printStackTrace();
+        }
+
+        return result;
+    }
+
+    public byte[] getFile(String filePath){
+        byte[] fileBytes;
+
+        File file = new File(filePath);
+
+        if(file.exists()) {
+            fileBytes = new byte[(int) file.length()];
+            try {
+                FileInputStream fis = new FileInputStream(file);
+                fis.read(fileBytes);
+                fis.close();
+            } catch (FileNotFoundException fnfex) {
+                fnfex.printStackTrace();
+            } catch (IOException ioex) {
+                ioex.printStackTrace();
+            }
+        }else {
+            System.out.println("File not found in server's database!");
+            return null;
+        }
+
+        return fileBytes;
     }
 
     /**

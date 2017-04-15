@@ -1,6 +1,6 @@
-package aestextencryption.rsrc;
+package securefilestorage.rsrc;
 
-import aestextencryption.security.Authenticator;
+import securefilestorage.security.Authenticator;
 
 import java.io.Serializable;
 import java.util.Random;

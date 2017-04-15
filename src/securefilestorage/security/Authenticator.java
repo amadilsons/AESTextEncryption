@@ -1,8 +1,8 @@
-package aestextencryption.security;
+package securefilestorage.security;
 
 public interface Authenticator{
 
-    enum Response{OK, ERROR, NOUSR, WRONGPWD, SKTCLS}
+    enum Response{OK, ERROR, NOUSR, WRONGPWD, FILENOTFOUND, SKTCLS}
 
     /**
      * Method to implement needed message exchange for authentication.

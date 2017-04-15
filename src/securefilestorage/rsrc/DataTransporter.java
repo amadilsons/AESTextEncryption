@@ -1,4 +1,4 @@
-package aestextencryption.rsrc;
+package securefilestorage.rsrc;
 
 import java.io.Serializable;
 

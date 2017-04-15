@@ -1,4 +1,4 @@
-package aestextencryption.rsrc;
+package securefilestorage.rsrc;
 
 /**
  * This interface defines basic socket communication methods.
