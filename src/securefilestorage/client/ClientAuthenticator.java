@@ -1,10 +1,10 @@
 package securefilestorage.client;
 
-import securefilestorage.rsrc.DataTransporter;
 import securefilestorage.rsrc.SessionEnvelope;
 import securefilestorage.security.Authenticator;
 import securefilestorage.security.AuthenticatorAbstract;
 
+import org.json.simple.JSONObject;
 import java.net.Socket;
 
 public class ClientAuthenticator extends AuthenticatorAbstract {
@@ -48,31 +48,34 @@ public class ClientAuthenticator extends AuthenticatorAbstract {
         Response rsp;
 
         /*Begin authentication with server; protocol stage_0*/
-        SessionEnvelope se = new SessionEnvelope();
-        se.createID(); //Init to random ID between 3000 and 6000
-        this.sessionID = se.getSID();
-        DataTransporter dt = new DataTransporter(this.userName, null);
-        paramAux = dt.getOpt() + Integer.toString(se.getSID()); //String to be hashed
-        se.setSessionEnvelope(0, dt, encode(signedHash(this.userPass, paramAux.getBytes())));
-        send(se);
+        this.sessionID = SessionEnvelope.createID();
+        paramAux = this.userName + Integer.toString(this.sessionID); //String to be hashed
+        SessionEnvelope msg = new SessionEnvelope(SessionEnvelope.createID(), 0, this.userName, null, encode(signedHash(this.userPass, paramAux.getBytes())));
+        send(msg.getJSON());
         this.sessionID ++; //Save current SessionID for posterior comparison
 
         /*Verify if authenticated into the server; If so, authenticate server response*/
-        if((se = (SessionEnvelope) receive()) == null)
+        msg.setJSON((JSONObject) receive());
+        if(msg.getJSON() == null){
+            System.out.println("Connection terminated by server..");
             return Response.SKTCLS;
+        }
 
-        if((rsp = se.conformityCheck(this.sessionID, 0)) != Response.OK) {
+        if((rsp = msg.conformityCheck(this.sessionID, 0)) != Response.OK) {
             if(rsp == Response.ERROR) { //Error message received
-                paramAux = se.getDT().getData() + Integer.toString(se.getSID());
-                if (!compDigest(decode(se.getAuth()), paramAux.getBytes()))
+                paramAux = msg.getPayload() + Integer.toString(msg.getSID());
+                if (!compDigest(decode(msg.getAuth()), paramAux.getBytes())){
+                    System.out.println("Error message digest corrupt! AUTH_2");
                     return Response.SKTCLS;
-                System.out.println(se.getDT().getData());
+                }
+
+                System.out.println(msg.getPayload());
             }
             return rsp;
         }
 
-        paramAux = se.getDT().getOpt() + Integer.toString(se.getSID());
-        if (!hashSignVerify(this.userPass, decode(se.getAuth()), paramAux.getBytes()) && !se.getDT().getOpt().equals("EncryptionServer@" + Integer.toString(sessionSkt.getPort()))){
+        paramAux = msg.getOptions() + Integer.toString(msg.getSID());
+        if (!hashSignVerify(this.userPass, decode(msg.getAuth()), paramAux.getBytes()) && !msg.getOptions().equals("EncryptionServer@" + Integer.toString(sessionSkt.getPort()))){
             System.out.println("Corrupt MAC in received message! AUTH_2");
             return Response.SKTCLS;
         }

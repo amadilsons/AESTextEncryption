@@ -18,8 +18,10 @@ import javax.crypto.spec.DHParameterSpec;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.security.KeyPair;
 import java.util.Arrays;
+import org.json.simple.JSONObject;
 
 
 public class EncryptionServer extends NetworkingAbstract implements Runnable{
@@ -29,32 +31,13 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
     private AES sessionEncryptor;
     private byte[] sharedSecret;
     private byte[] sessionKey;
-    private static final int LOCAL_PORT = 3000;
 
-    public static void main(String[] args) {
-
-        Thread T1 = new Thread(new EncryptionServer());
-        T1.start();
-    }
-
-    EncryptionServer(){
+    EncryptionServer(Socket sessionSocket){
+        this.sessionSkt = sessionSocket;
         this.sessionEncryptor = new AES();
     }
 
-    @Override
     public void run(){
-
-        ServerSocket portListenerSkt;
-        /*Wait for and accept incoming connections*/
-        try {
-            System.out.println("Waiting for connections..");
-            portListenerSkt = new ServerSocket(LOCAL_PORT);
-            this.sessionSkt = portListenerSkt.accept();
-            System.out.printf("Connection established with %s\n", sessionSkt.getRemoteSocketAddress());
-        }catch(IOException ioex){
-            ioex.printStackTrace();
-            System.exit(-1);
-        }
 
         this.dbHandler = new ServerDatabaseHandler();
         this.authenticator = new ServerAuthenticator(this.dbHandler, this.sessionSkt);
@@ -82,7 +65,6 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         /*Authentication protocol*/
         System.out.println("Authenticating session..");
         Response rsp;
-
         if((rsp = this.authenticator.startAuthentication()) != Response.OK){ //Check if authentication was succesful or returned a different error described by returned Response.
             switch(rsp){ //Send appropriate error message for each Response
                 case NOUSR:
@@ -104,7 +86,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
     }
 
     private Response keyExchangeDH(){
-        String paramAux;
+        String paramAux, options;
         Response rsp;
         DataTransporter dt;
         SessionEnvelope msg =  new SessionEnvelope();
@@ -122,25 +104,26 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         System.arraycopy(dhpub.getY().toByteArray(), 0, buf, dhparam.getG().toByteArray().length + dhparam.getP().toByteArray().length, dhpub.getY().toByteArray().length);
 
         this.authenticator.updateCurrentSID();
-        paramAux = Integer.toString(dhparam.getP().toByteArray().length) + " " + Integer.toString(dhparam.getG().toByteArray().length) + " " + Integer.toString(dhpub.getY().toByteArray().length);
-        dt = new DataTransporter(paramAux, encode(buf));
-        paramAux = dt.getOpt() + dt.getData() + Integer.toString(this.authenticator.getCurrentSID());
-        msg.setSessionEnvelope(this.authenticator.getCurrentSID(), 1, dt, encode(this.authenticator.signedHash(this.authenticator.getUsrPass(), paramAux.getBytes())));
-        if(!send(msg)) { //Try to send
+
+        options = Integer.toString(dhparam.getP().toByteArray().length) + " " + Integer.toString(dhparam.getG().toByteArray().length) + " " + Integer.toString(dhpub.getY().toByteArray().length);
+        paramAux = options + encode(buf) + Integer.toString(this.authenticator.getCurrentSID());
+        msg = new SessionEnvelope(this.authenticator.getCurrentSID(), 1, options, encode(buf), encode(this.authenticator.signedHash(this.authenticator.getUsrPass(), paramAux.getBytes())));
+        if(!send(msg.getJSON())) { //Try to send
             System.out.println("Connection terminated by the client..");
             return Response.SKTCLS;
         }
 
         this.authenticator.updateCurrentSID(); //update current session ID for posterior comparison
-        if((msg = (SessionEnvelope) receive()) != null){ //Check if EOFException was thrown at receive()
+        msg.setJSON((JSONObject) receive());
+        if(msg.getJSON() != null){ //Check if EOFException was thrown at receive()
 
-            paramAux = msg.getDT().getData() + Integer.toString(this.authenticator.getCurrentSID()); //params for Authentication field comparison
+            paramAux = msg.getPayload() + Integer.toString(this.authenticator.getCurrentSID()); //params for Authentication field comparison
 
             if((rsp = msg.conformityCheck(this.authenticator.getCurrentSID(), 1)) != Response.OK) {
                 System.out.println("An error ocurred with the received packet..");
                 return rsp;
             } else if(this.authenticator.hashSignVerify(this.authenticator.getUsrPass(), decode(msg.getAuth()), paramAux.getBytes()))
-                this.sharedSecret = DH.genSharedSecret(new BigInteger(decode(msg.getDT().getData())), dhpriv.getX(), dhparam.getP());
+                this.sharedSecret = DH.genSharedSecret(new BigInteger(decode(msg.getPayload())), dhpriv.getX(), dhparam.getP());
             else{
                 System.out.println("WRONGPWD " + this.authenticator.getUsrPass());
                 return Response.WRONGPWD;
@@ -156,7 +139,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
 
     private Response handleClientRequest(){
         Response rsp;
-        SessionEnvelope msg;
+        SessionEnvelope msg =  new SessionEnvelope();
         String paramAux;
 
         /*Initialize session Encryptor*/
@@ -175,11 +158,12 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         }
 
         this.authenticator.updateCurrentSID();
-        if((msg = (SessionEnvelope) receive()) != null){
+        msg.setJSON((JSONObject) receive());
+        if(msg.getJSON() != null){
 
-            paramAux = msg.getDT().getOpt();
-            if(msg.getDT().getData() != null)
-                paramAux += msg.getDT().getData();
+            paramAux = msg.getOptions();
+            if(msg.getPayload() != null)
+                paramAux += msg.getPayload();
             paramAux += Integer.toString(this.authenticator.getCurrentSID());
 
             if((rsp = msg.conformityCheck(this.authenticator.getCurrentSID(), 2)) != Response.OK) {
@@ -194,7 +178,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         }
 
         byte[] up = {0x1, 0x2}, down = {0x2, 0x1}; /*Upload and download signals*/
-        ByteArrayInputStream bais = new ByteArrayInputStream(this.sessionEncryptor.decrypt(decode(msg.getDT().getOpt())));
+        ByteArrayInputStream bais = new ByteArrayInputStream(this.sessionEncryptor.decrypt(decode(msg.getOptions())));
         byte[] action = new byte[2];
         bais.read(action, 0, 2);
         byte[] fileNameBytes = new byte[bais.available()];
@@ -202,7 +186,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         String fileName = new String(fileNameBytes);
 
         if(Arrays.equals(action, up)){ //File upload
-            if((rsp = uploadFile(fileName, msg.getDT())) != Response.OK)
+            if((rsp = uploadFile(fileName, msg)) != Response.OK)
                 if(rsp == Response.ERROR)
                     sendErrorMessage("ERROR: Unable to store file in servers database");
 
@@ -219,24 +203,22 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         return rsp;
     }
 
-    private Response uploadFile(String fileName, DataTransporter dt){
+    private Response uploadFile(String fileName, SessionEnvelope recv){
         SessionEnvelope msg = new SessionEnvelope();
 
         String fileId = this.authenticator.getUsrName() + fileName;
         ByteArrayOutputStream idbytes = new ByteArrayOutputStream(16);
         idbytes.write(dataDigest(fileId.getBytes()), 0 , 16); /*_id field of file document in the database will be first 128 bits of SHA256(userName + fileName)*/
 
-        byte[] fileBytes = this.sessionEncryptor.decrypt(decode(dt.getData()));
+        byte[] fileBytes = this.sessionEncryptor.decrypt(decode(recv.getPayload()));
         String fileSecretKey = encode(this.authenticator.signedHash(this.authenticator.getUsrPass(), dataDigest(this.sessionEncryptor.getSecretKey())));
 
         if(this.dbHandler.storeFile(this.authenticator.getUsrName(), encode(idbytes.toByteArray()), fileName, fileBytes, fileSecretKey) == Response.OK){
             this.authenticator.updateCurrentSID();
             String okMsg = new String("File stored successfuly in server's database!");
-            dt = new DataTransporter(null, encode(this.sessionEncryptor.encrypt(okMsg.getBytes())));
-            String paramAux = dt.getData() + Integer.toString(this.authenticator.getCurrentSID());
-            msg.setSessionEnvelope(this.authenticator.getCurrentSID(), 2, dt, encode(dataDigest(paramAux.getBytes())));
-
-            if(!send(msg)){ //Try to send
+            String paramAux = recv.getPayload() + Integer.toString(this.authenticator.getCurrentSID());
+            msg = new SessionEnvelope(this.authenticator.getCurrentSID(), 2, null, encode(this.sessionEncryptor.encrypt(okMsg.getBytes())), encode(dataDigest(paramAux.getBytes())));
+            if(!send(msg.getJSON())){ //Try to send
                 System.out.println("Connection terminated by the client..");
                 return Response.SKTCLS;
             }
@@ -247,8 +229,7 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
         return Response.OK;
     }
 
-    private Response downloadFile(String fileName){
-        SessionEnvelope msg = new SessionEnvelope();
+    private Response downloadFile(String fileName) {
 
         String fileId = this.authenticator.getUsrName() + fileName;
         ByteArrayOutputStream idbytes = new ByteArrayOutputStream(16);
@@ -256,16 +237,14 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
 
         byte[] fileBytes = this.dbHandler.retrieveFile(this.authenticator.getUsrName(), encode(idbytes.toByteArray())); //Get file bytes from database
         String fileKey = this.dbHandler.retrieveFileKey(encode(idbytes.toByteArray())); //Get file encrypted key from database
-        if(fileBytes == null || fileKey == null)
+        if (fileKey == null || fileBytes == null)
             return Response.ERROR;
 
         /*Options field will carry encoded byte array with file encryption key*/
         this.authenticator.updateCurrentSID();
-        DataTransporter dt = new DataTransporter(encode(this.sessionEncryptor.encrypt(decode(fileKey))), encode(this.sessionEncryptor.encrypt(fileBytes)));
-        String paramAux = dt.getOpt() + dt.getData() + Integer.toString(this.authenticator.getCurrentSID());
-        msg.setSessionEnvelope(this.authenticator.getCurrentSID(), 2, dt, encode(this.authenticator.signedHash(this.authenticator.getUsrPass(), paramAux.getBytes())));
-
-        if(!send(msg)) { //Try to send
+        String paramAux = encode(this.sessionEncryptor.encrypt(decode(fileKey))) + encode(this.sessionEncryptor.encrypt(fileBytes)) + Integer.toString(this.authenticator.getCurrentSID());
+        SessionEnvelope msg = new SessionEnvelope(this.authenticator.getCurrentSID(), 2, encode(this.sessionEncryptor.encrypt(decode(fileKey))), encode(this.sessionEncryptor.encrypt(fileBytes)), encode(this.authenticator.signedHash(this.authenticator.getUsrPass(), paramAux.getBytes())));
+        if(!send(msg.getJSON())) { //Try to send
             System.out.println("Connection terminated by the client..");
             return Response.SKTCLS;
         }
@@ -274,18 +253,16 @@ public class EncryptionServer extends NetworkingAbstract implements Runnable{
     }
 
     private void sendErrorMessage(String errorMessage){
-        SessionEnvelope msg = new SessionEnvelope();
         this.authenticator.updateCurrentSID();
-        DataTransporter dt = new DataTransporter(null, errorMessage);
-        String paramAux = dt.getData() + Integer.toString(this.authenticator.getCurrentSID()); //Hash of paramAux only for integrity purposes
-        msg.setSessionEnvelope(this.authenticator.getCurrentSID(), 3, dt, encode(dataDigest(paramAux.getBytes())));
-        if(!send(msg))
+        String paramAux = errorMessage + Integer.toString(this.authenticator.getCurrentSID()); //Hash of paramAux only for integrity purposes
+        SessionEnvelope msg = new SessionEnvelope(this.authenticator.getCurrentSID(), 3, null, errorMessage, encode(dataDigest(paramAux.getBytes())));
+        if(!send(msg.getJSON()))
             return;
     }
 
     private void closeSession(){
         try{
-            System.out.println("Terminating session..");
+            System.out.println("Terminating session with" + this.sessionSkt.getRemoteSocketAddress());
             this.sessionSkt.close();
         } catch(IOException ioex){
             ioex.printStackTrace();

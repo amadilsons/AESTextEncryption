@@ -15,7 +15,7 @@ import net.lingala.zip4j.util.Zip4jConstants;
 
 
 public class ServerFileManager{
-    private final static String STORAGE_PATH = "/home/jasa/Desktop/Code/Java/secure_file_storage/database/_file_storage/";
+    private final static String STORAGE_PATH = "/home/jasa/Desktop/Code/secure_file_storage/database/_file_storage/";
     private final static String SUDOPASS = "jasamado123";
     private final static String USEREG = "regUsrs";
     private final static int MAX_FILE_SIZE = 8000;

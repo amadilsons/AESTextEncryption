@@ -1,5 +1,7 @@
 package securefilestorage.rsrc;
 
+import org.json.simple.JSONObject;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -51,7 +53,7 @@ public class NetworkingAbstract implements Networking{
      * @return - returns received (Object) message or null if fail to read from stream.
      */
     public Object receive() {
-        SessionEnvelope se = null;
+        JSONObject json = null;
         if (this.inSkt == null)
             try {
                 this.inSkt = new ObjectInputStream(this.sessionSkt.getInputStream());
@@ -59,7 +61,7 @@ public class NetworkingAbstract implements Networking{
                 ioex.printStackTrace();
             }
         try {
-            se = (SessionEnvelope) this.inSkt.readObject();
+            json = (JSONObject) this.inSkt.readObject();
         } catch(EOFException eofex){
             return null; //stream probably closed
         } catch(IOException ioex){
@@ -69,7 +71,7 @@ public class NetworkingAbstract implements Networking{
         } catch(NullPointerException npex){
             npex.printStackTrace();
         }
-        return se;
+        return json;
     }
 
     public byte[] dataDigest(byte[] data){

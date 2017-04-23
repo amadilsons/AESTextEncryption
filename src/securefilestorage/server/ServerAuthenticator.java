@@ -7,6 +7,7 @@ import securefilestorage.security.AuthenticatorAbstract;
 import securefilestorage.server.database.ServerDatabaseHandler;
 
 import java.net.Socket;
+import org.json.simple.JSONObject;
 
 public class ServerAuthenticator extends AuthenticatorAbstract{
 
@@ -43,31 +44,28 @@ public class ServerAuthenticator extends AuthenticatorAbstract{
      */
     @Override
     public Authenticator.Response startAuthentication(){
-        SessionEnvelope msg;
+        SessionEnvelope msg = new SessionEnvelope();
         String param;
         Response rsp;
 
-        msg = (SessionEnvelope) receive();
+        msg.setJSON((JSONObject) receive());
         if ((rsp = msg.conformityCheck(msg.getSID(), 0)) != Response.OK)//rsp is never ERROR (stage 3) in first exchanged message
             return rsp;
 
         this.sessionID = msg.getSID();
-        msg.incID();//increment ID; process repeated in every message exchange
         String encodedPass;
-        this.sessionUsrName = msg.getDT().getOpt();
+        this.sessionUsrName = msg.getOptions();
         if ((encodedPass = this.dbHandler.getUserPass(this.sessionUsrName)) == null)  //Obtain shared pwd between server and current session user from stored file
             return Response.NOUSR;
 
         this.sessionUsrPass = decode(encodedPass);
-        param = msg.getDT().getOpt() + Integer.toString(this.sessionID);
+        param = msg.getOptions() + Integer.toString(this.sessionID);
         if (!hashSignVerify(this.sessionUsrPass, decode(msg.getAuth()), param.getBytes())) //Verify received Authentication using shared password
             return Response.WRONGPWD;
 
         this.sessionID += 1; //update current session ID
-        DataTransporter dt = new DataTransporter("EncryptionServer@" + Integer.toString(sessionSkt.getLocalPort()), null);
-        param = dt.getOpt() + Integer.toString(this.sessionID);
-        msg.setSessionEnvelope(0, dt, encode(signedHash(this.sessionUsrPass, param.getBytes())));
-        send(msg);
+        msg = new SessionEnvelope(this.sessionID, 0, "EncryptionServer@" + Integer.toString(sessionSkt.getLocalPort()), null, encode(signedHash(this.sessionUsrPass, param.getBytes())));
+        send(msg.getJSON());
 
         return Response.OK;
     }

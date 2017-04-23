@@ -1,5 +1,6 @@
 package securefilestorage.client;
 
+import org.json.simple.JSONObject;
 import securefilestorage.rsrc.DataTransporter;
 import securefilestorage.rsrc.NetworkingAbstract;
 import securefilestorage.rsrc.SessionEnvelope;
@@ -90,7 +91,7 @@ public class Client extends NetworkingAbstract implements Runnable{
         }
 
         Response rsp = Response.OK;
-        System.out.printf("Choose whether you want to upload(u) or download(d) a file: ");
+        System.out.printf("Upload(u)   Download(d)   List Stored files(l)");
         do {
             validInput = true;
             input = new Scanner(System.in);
@@ -141,17 +142,17 @@ public class Client extends NetworkingAbstract implements Runnable{
     public Response keyExchangeDH(ClientAuthenticator ca){
         Response rsp;
         String paramAux;
-        SessionEnvelope msg;
-        DataTransporter dt;
+        SessionEnvelope msg = new SessionEnvelope();
 
         ca.updateCurrentSID();
-        if((msg = (SessionEnvelope) receive()) != null){
+        msg.setJSON((JSONObject) receive());
+        if(msg != null){
             if((rsp = msg.conformityCheck(ca.getCurrentSID(), 1)) != Response.OK) { //First message in stage 1 is never an error message
                 System.out.println("An error ocurred with the received packet.." );
                 return rsp;
             }
 
-            paramAux = msg.getDT().getOpt() + msg.getDT().getData() + Integer.toString(msg.getSID());
+            paramAux = msg.getOptions() + msg.getPayload() + Integer.toString(msg.getSID());
             if(!ca.hashSignVerify(ca.getUsrPass(), decode(msg.getAuth()), paramAux.getBytes())) {
                 System.out.println("Corrupt MAC in received message! DH_1 " + ca.getCurrentSID());
                 return Response.SKTCLS;
@@ -163,9 +164,9 @@ public class Client extends NetworkingAbstract implements Runnable{
 
         /*Read DH parameters (P,G) and DH server public key, Y, from msg Data*/
         List<BigInteger> dhValues = new ArrayList<>();
-        Scanner prov = new Scanner(msg.getDT().getOpt());
+        Scanner prov = new Scanner(msg.getOptions());
         prov.useDelimiter(" ");
-        ByteArrayInputStream bis = new ByteArrayInputStream(decode(msg.getDT().getData()));
+        ByteArrayInputStream bis = new ByteArrayInputStream(decode(msg.getPayload()));
         while (prov.hasNextInt()) {
             int current = prov.nextInt();//Get (byte) length to read from msg Data in next line
             byte[] buf = new byte[current];
@@ -177,12 +178,10 @@ public class Client extends NetworkingAbstract implements Runnable{
         DHPublicKey dhpub = (DHPublicKey) dhkp.getPublic();
         DHPrivateKey dhpriv = (DHPrivateKey) dhkp.getPrivate();
 
-        dt = new DataTransporter(null, encode(dhpub.getY().toByteArray()));
-        paramAux = dt.getData() + Integer.toString(msg.getSID() + 1);
-
-        msg.incID();
-        msg.setSessionEnvelope(1, dt, encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
-        if(!send(msg)){
+        ca.updateCurrentSID(); //update SID in this session ClientAuthenticator
+        paramAux = encode(dhpub.getY().toByteArray()) + Integer.toString(ca.getCurrentSID());
+        msg = new SessionEnvelope(ca.getCurrentSID(), 1, null, encode(dhpub.getY().toByteArray()), encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
+        if(!send(msg.getJSON())){
             System.out.println("Connection terminated by the server..");
             return Response.SKTCLS;
         }
@@ -193,7 +192,6 @@ public class Client extends NetworkingAbstract implements Runnable{
         calculated based on access-controled user pwd. */
 
         sharedSecret = DH.genSharedSecret(dhValues.get(2), dhpriv.getX(), dhparam.getP());
-        ca.updateCurrentSID(); //update SID in this session ClientAuthenticator
         System.out.println("Key exchange success!");
 
         return Response.OK;
@@ -233,26 +231,26 @@ public class Client extends NetworkingAbstract implements Runnable{
         ca.updateCurrentSID();
         String fileName = pathToFile.substring(pathToFile.lastIndexOf("/") + 1);
         bais.write(fileName.getBytes(), 0, fileName.getBytes().length);
-        DataTransporter dt = new DataTransporter(encode(sessionEncryptor.encrypt(bais.toByteArray())), encode(sessionEncryptor.encrypt(cipheredFile)));
 
-        String paramAux = dt.getOpt() + dt.getData() + Integer.toString(ca.getCurrentSID());
-        msg.setSessionEnvelope(ca.getCurrentSID(), 2, dt, encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
-        if(!send(msg)){
+        String paramAux = encode(sessionEncryptor.encrypt(bais.toByteArray())) + encode(sessionEncryptor.encrypt(cipheredFile)) + Integer.toString(ca.getCurrentSID());
+        msg = new SessionEnvelope(ca.getCurrentSID(), 2, encode(sessionEncryptor.encrypt(bais.toByteArray())), encode(sessionEncryptor.encrypt(cipheredFile)), encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
+        if(!send(msg.getJSON())){
             System.out.println("Connection terminated by the server..");
             return Response.SKTCLS;
         }
 
         ca.updateCurrentSID();
-        Response rsp;
-        if((msg = (SessionEnvelope) receive()) != null){
+        msg.setJSON((JSONObject) receive());
+        if(msg.getJSON() != null){
+            Response rsp;
             if((rsp = msg.conformityCheck(ca.getCurrentSID(), 2)) != Response.OK || rsp != Response.ERROR)
                 return rsp;
 
-            paramAux = msg.getDT().getData() + Integer.toString(msg.getSID());
+            paramAux = msg.getPayload() + Integer.toString(msg.getSID());
             if(!compDigest(decode(msg.getAuth()), paramAux.getBytes()))
                 return Response.SKTCLS;
 
-            System.out.println(msg.getDT().getData());
+            System.out.println(msg.getPayload());
         } else{
             System.out.println("Connection terminated by the server..");
             return Response.SKTCLS;
@@ -269,30 +267,30 @@ public class Client extends NetworkingAbstract implements Runnable{
         byte[] up = {0x2, 0x1}; // 0x2 0x1 is the bit mask for download
         bais.write(up, 0, 2);
         bais.write(fileName.getBytes(), 0, fileName.getBytes().length);
-        DataTransporter dt = new DataTransporter(encode(sessionEncryptor.encrypt(bais.toByteArray())), null);
 
         ca.updateCurrentSID();
-        String paramAux = dt.getOpt() + Integer.toString(ca.getCurrentSID());
-        msg.setSessionEnvelope(ca.getCurrentSID(), 2, dt, encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
-        if(!send(msg)){
+        String paramAux = encode(sessionEncryptor.encrypt(bais.toByteArray())) + Integer.toString(ca.getCurrentSID());
+        msg = new SessionEnvelope(ca.getCurrentSID(), 2, encode(sessionEncryptor.encrypt(bais.toByteArray())), null, encode(ca.signedHash(ca.getUsrPass(), paramAux.getBytes())));
+        if(!send(msg.getJSON())){
             System.out.println("Connection terminated by the server..");
             return Response.SKTCLS;
         }
 
         Response rsp;
         ca.updateCurrentSID();
-        if((msg = (SessionEnvelope) receive()) != null){
+        msg.setJSON((JSONObject) receive());
+        if(msg.getJSON() != null){
             if((rsp = msg.conformityCheck(ca.getCurrentSID(), 2)) != Response.OK) {
                 if (rsp == Response.ERROR) { //Error message received
-                    paramAux = msg.getDT().getData() + Integer.toString(msg.getSID());
+                    paramAux = msg.getPayload() + Integer.toString(msg.getSID());
                     if (!compDigest(decode(msg.getAuth()), paramAux.getBytes()))
                         return Response.SKTCLS;
-                    System.out.println(msg.getDT().getData());
+                    System.out.println(msg.getPayload());
                 }
                 return rsp;
             }
 
-            paramAux = msg.getDT().getOpt() + msg.getDT().getData() + Integer.toString(msg.getSID());
+            paramAux = msg.getOptions() + msg.getPayload() + Integer.toString(msg.getSID());
             if(!ca.hashSignVerify(ca.getUsrPass(), decode(msg.getAuth()), paramAux.getBytes())) {
                 System.out.println("Corrupt MAC in received message! DOWN_2 " + ca.getCurrentSID());
                 return Response.SKTCLS;
@@ -303,8 +301,8 @@ public class Client extends NetworkingAbstract implements Runnable{
         }
 
         /*Decrypt received file*/
-        AES fileEncryptor = new AES(sessionEncryptor.decrypt(decode(msg.getDT().getOpt())));
-        byte[] fileBytes = fileEncryptor.decrypt(sessionEncryptor.decrypt(decode(msg.getDT().getData())));
+        AES fileEncryptor = new AES(sessionEncryptor.decrypt(decode(msg.getOptions())));
+        byte[] fileBytes = fileEncryptor.decrypt(sessionEncryptor.decrypt(decode(msg.getPayload())));
 
         File file = new File(STORAGE_PATH + fileName);
         try {

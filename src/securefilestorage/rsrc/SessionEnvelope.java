@@ -4,6 +4,7 @@ import securefilestorage.security.Authenticator;
 
 import java.io.Serializable;
 import java.util.Random;
+import org.json.simple.JSONObject;
 
 /**
  * STAGE_0: Authentication
@@ -17,37 +18,52 @@ public class SessionEnvelope implements Serializable{
     private int SessionStage;
     private String Authentication;
     private DataTransporter Payload;
+    private JSONObject message;
+
+    public SessionEnvelope(int sid, int stage, String options, String payload, String auth){
+        this.message = new JSONObject();
+        this.message.put("sessionID", sid);
+        this.message.put("sessionStage", stage);
+        this.message.put("options", options);
+        this.message.put("payload", payload);
+        this.message.put("authentication", auth);
+    }
 
     public SessionEnvelope(){}
 
-    public int getSID() {
-        return this.SessionID;
+    public JSONObject getJSON(){
+        return this.message;
     }
 
-    public int getStage(){
-        return this.SessionStage;
-    }
-
-    public String getAuth(){
-        return this.Authentication;
-    }
-
-    public DataTransporter getDT(){
-        return this.Payload;
+    public void setJSON(JSONObject message){
+        this.message = message;
     }
 
     /**
      * Uses current time in milliseconds as seed to Random object
      */
-    public void createID(){
+    public static int createID(){
         Random rand = new Random();
         rand.setSeed(System.currentTimeMillis());
-        this.SessionID = rand.nextInt(3000) + 3000; //ID between 3000 and 6000
+        return rand.nextInt(3000) + 3000; //ID between 3000 and 6000
     }
 
-    public void incID(){
-        this.SessionID++;
+    public int getSID() {
+        return (int) this.message.get("sessionID");
     }
+
+    public String getAuth(){
+        return (String) this.message.get("authentication");
+    }
+
+    public String getOptions(){
+        return (String) this.message.get("options");
+    }
+
+    public String getPayload(){
+        return (String) this.message.get("payload");
+    }
+
 
     public void setSessionEnvelope(int stage, DataTransporter dt, String auth){
         this.SessionStage = stage;
@@ -70,12 +86,12 @@ public class SessionEnvelope implements Serializable{
      */
     public Authenticator.Response conformityCheck(int sid, int stage){
         if(stage == 0) {
-            if (this.SessionID != sid || sid > 6000 || sid < 3000)
+            if ((int) this.message.get("sessionID") != sid || sid > 6000 || sid < 3000)
                 return Authenticator.Response.SKTCLS;
-        } else if(this.SessionID != sid)
+        } else if((int) this.message.get("sessionID") != sid)
             return Authenticator.Response.SKTCLS;
-        if(this.SessionStage != stage){
-            if (this.SessionStage == 3)
+        if((int) this.message.get("sessionStage") != stage){
+            if ((int) this.message.get("sessionStage") == 3)
                 return Authenticator.Response.ERROR;
             return Authenticator.Response.SKTCLS;
         }
